@@ -1,0 +1,63 @@
+import React, { useState } from 'react'
+import Sidebar from './components/Sidebar'
+import Header from './components/Header'
+import Dashboard from './pages/Dashboard'
+
+// Placeholder components for pages we haven't built yet
+const Placeholder = ({ title }) => (
+  <div>
+    <h1>{title}</h1>
+    <p>This page is under construction.</p>
+  </div>
+)
+
+function App() {
+  const [currentPage, setCurrentPage] = useState('dashboard')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Simple routing mechanism
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <Dashboard /> // Render the real Dashboard
+      case 'subjects':
+        return <Placeholder title="Subjects" />
+      case 'attendance':
+        return <Placeholder title="Attendance" />
+      case 'assignments':
+        return <Placeholder title="Assignments" />
+      case 'studyPlanner':
+        return <Placeholder title="Study Planner" />
+      case 'sgpa':
+        return <Placeholder title="SGPA Calculator" />
+      case 'profile':
+        return <Placeholder title="Profile" />
+      default:
+        return <Placeholder title="Not Found" />
+    }
+  }
+
+  return (
+    <div className="app-container">
+      <Sidebar 
+        currentPage={currentPage} 
+        setCurrentPage={setCurrentPage} 
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+      />
+      
+      <main className="main-content">
+        <Header 
+          pageTitle={currentPage} 
+          onMenuClick={() => setIsSidebarOpen(true)} 
+        />
+        
+        <div className="page-content">
+          {renderPage()}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+export default App
