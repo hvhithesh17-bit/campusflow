@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Subjects from './pages/Subjects'
 import Attendance from './pages/Attendance'
 import Assignments from './pages/Assignments'
+import { db } from "./firebase";
 
 // Placeholder components for pages we haven't built yet
 const Placeholder = ({ title }) => (

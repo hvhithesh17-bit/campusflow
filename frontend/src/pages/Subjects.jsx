@@ -1,27 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 import SubjectCard from '../components/SubjectCard';
 
 const Subjects = () => {
   // 1. We use useState to hold the list of subjects. 
-  // We provide some initial dummy data so the list isn't empty.
-  const [subjects, setSubjects] = useState([
-    { id: 1, name: 'Data Structures', credits: 4, code: 'CS301', attendance: '82', grade: 'A' },
-    { id: 2, name: 'Operating Systems', credits: 3, code: 'CS302', attendance: '71', grade: 'B+' }
-  ]);
+  // We start with an empty array because data will come from Firestore.
+  const [subjects, setSubjects] = useState([]);
+  const [error, setError] = useState(null); // Add error state
+
+  // Fetch subjects from Firestore when the component loads
+  useEffect(() => {
+    try {
+      // onSnapshot listens to the 'subjects' collection in real-time
+      const unsubscribe = onSnapshot(
+        collection(db, 'subjects'), 
+        (snapshot) => {
+          const subjectsData = [];
+          snapshot.forEach((doc) => {
+            subjectsData.push({ id: doc.id, ...doc.data() });
+          });
+          setSubjects(subjectsData);
+          setError(null); // Clear errors if successful
+        },
+        (error) => {
+          console.error("Firestore error:", error);
+          setError("Could not connect to Firebase! Did you replace the API keys in firebase.js?");
+        }
+      );
+
+      // Cleanup the listener when the component unmounts
+      return () => unsubscribe();
+    } catch (err) {
+      console.error("Failed to setup Firebase listener:", err);
+      setError("Failed to initialize Firebase.");
+    }
+  }, []);
 
   // 2. We use useState for the form inputs.
   const [subjectName, setSubjectName] = useState('');
   const [credits, setCredits] = useState('');
 
   // 3. This function handles the form submission
-  const handleAddSubject = (e) => {
-    // e.preventDefault() stops the browser from reloading the page,
-    // which is the default behavior of an HTML form submission.
+  const handleAddSubject = async (e) => {
+    // e.preventDefault() stops the browser from reloading the page
     e.preventDefault(); 
     
     // Create a new subject object from the form state
+    // We NO LONGER generate our own ID. Firestore will generate one for us!
     const newSubject = {
-      id: Date.now(), // Generate a unique dummy ID using the current time
       name: subjectName,
       credits: Number(credits),
       code: 'NEW' + Math.floor(Math.random() * 900 + 100), // Random dummy code
@@ -29,12 +56,22 @@ const Subjects = () => {
       grade: 'N/A'
     };
 
-    // Update the subjects array by keeping existing subjects and adding the new one
-    setSubjects([...subjects, newSubject]);
-    
-    // 4. Clear the form by resetting the state variables
-    setSubjectName('');
-    setCredits('');
+    try {
+      // Add the new subject to the 'subjects' collection in Firestore
+      // addDoc automatically generates a unique ID for the document
+      await addDoc(collection(db, 'subjects'), newSubject);
+      
+      // 4. Clear the form by resetting the state variables
+      // Note: We don't need to manually update the 'subjects' array state anymore,
+      // because our onSnapshot listener above will automatically detect the new 
+      // document and update the state for us!
+      setSubjectName('');
+      setCredits('');
+      setError(null);
+    } catch (error) {
+      console.error("Error adding document: ", error);
+      setError("Failed to add subject! Make sure your Firestore Database is created and set to Test Mode.");
+    }
   };
 
   return (
@@ -43,6 +80,12 @@ const Subjects = () => {
         <h1>My Subjects</h1>
         <p>Manage your enrolled subjects and track performance.</p>
       </div>
+
+      {error && (
+        <div style={{ padding: '1rem', backgroundColor: 'var(--danger-color)', color: 'white', borderRadius: '8px' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
 
       {/* Add Subject Form Section */}
       <div className="card" style={{ maxWidth: '500px' }}>
@@ -86,17 +129,21 @@ const Subjects = () => {
       {/* Display the Subjects List */}
       <div>
         <h2 style={{ marginBottom: '1rem' }}>Current Subjects</h2>
-        <div className="grid grid-cols-3">
-          {subjects.map(subject => (
-            <SubjectCard 
-              key={subject.id} 
-              name={subject.name}
-              code={subject.code}
-              attendance={subject.attendance}
-              grade={subject.grade}
-            />
-          ))}
-        </div>
+        {subjects.length === 0 && !error ? (
+          <p>No subjects found. Add one above!</p>
+        ) : (
+          <div className="grid grid-cols-3">
+            {subjects.map(subject => (
+              <SubjectCard 
+                key={subject.id} 
+                name={subject.name}
+                code={subject.code}
+                attendance={subject.attendance}
+                grade={subject.grade}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
