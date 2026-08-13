@@ -7,7 +7,7 @@ import AssignmentCard from '../components/AssignmentCard';
 const Dashboard = () => {
   // Dummy Data
   const stats = [
-    { title: 'Current SGPA', value: '8.4', icon: GraduationCap, trend: '0.2', trendUp: true },
+    { title: 'Current SGPA', value: '9', icon: GraduationCap, trend: '0.2', trendUp: true },
     { title: 'Overall Attendance', value: '78%', icon: Calendar, trend: '2%', trendUp: false },
     { title: 'Pending Assignments', value: '4', icon: Clock },
     { title: 'Upcoming Exams', value: '2', icon: Activity }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
-const AssignmentCard = ({ title, subject, dueDate, status }) => {
+const AssignmentCard = ({ title, subject, dueDate, status, onMarkComplete }) => {
   // Determine styles based on status
   let statusColor, StatusIcon;
   
@@ -38,11 +38,28 @@ const AssignmentCard = ({ title, subject, dueDate, status }) => {
         </span>
       </div>
       
-      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+      <div style={{ 
+        marginTop: '1rem', 
+        borderTop: '1px solid var(--border-color)', 
+        paddingTop: '0.75rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
         <p style={{ margin: 0, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Clock size={14} color="var(--text-secondary)" />
           <span>Due: <strong>{dueDate}</strong></span>
         </p>
+
+        {status === 'Pending' && onMarkComplete && (
+          <button 
+            className="btn btn-primary" 
+            style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem' }}
+            onClick={onMarkComplete}
+          >
+            Mark Complete
+          </button>
+        )}
       </div>
     </div>
   );

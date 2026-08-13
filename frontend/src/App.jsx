@@ -2,6 +2,9 @@ import React, { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import Dashboard from './pages/Dashboard'
+import Subjects from './pages/Subjects'
+import Attendance from './pages/Attendance'
+import Assignments from './pages/Assignments'
 
 // Placeholder components for pages we haven't built yet
 const Placeholder = ({ title }) => (
@@ -21,11 +24,11 @@ function App() {
       case 'dashboard':
         return <Dashboard /> // Render the real Dashboard
       case 'subjects':
-        return <Placeholder title="Subjects" />
+        return <Subjects />
       case 'attendance':
-        return <Placeholder title="Attendance" />
+        return <Attendance />
       case 'assignments':
-        return <Placeholder title="Assignments" />
+        return <Assignments />
       case 'studyPlanner':
         return <Placeholder title="Study Planner" />
       case 'sgpa':
