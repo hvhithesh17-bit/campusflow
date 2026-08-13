@@ -13,5 +13,4 @@ To help engineering students manage:
 - Study plans
 - SGPA
 - Academic progress
-- NOTHING
-- pin point
+
