@@ -5,9 +5,9 @@ import Dashboard from './pages/Dashboard'
 import Subjects from './pages/Subjects'
 import Attendance from './pages/Attendance'
 import Assignments from './pages/Assignments'
-import { db } from "./firebase";
+import Sgpa from './pages/Sgpa'
+import StudyPlanner from './pages/StudyPlanner'
 
-// Placeholder components for pages we haven't built yet
 const Placeholder = ({ title }) => (
   <div>
     <h1>{title}</h1>
@@ -19,11 +19,10 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  // Simple routing mechanism
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard /> // Render the real Dashboard
+        return <Dashboard />
       case 'subjects':
         return <Subjects />
       case 'attendance':
@@ -31,9 +30,9 @@ function App() {
       case 'assignments':
         return <Assignments />
       case 'studyPlanner':
-        return <Placeholder title="Study Planner" />
+        return <StudyPlanner />
       case 'sgpa':
-        return <Placeholder title="SGPA Calculator" />
+        return <Sgpa />
       case 'profile':
         return <Placeholder title="Profile" />
       default:
@@ -43,19 +42,19 @@ function App() {
 
   return (
     <div className="app-container">
-      <Sidebar 
-        currentPage={currentPage} 
-        setCurrentPage={setCurrentPage} 
+      <Sidebar
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
       />
-      
+
       <main className="main-content">
-        <Header 
-          pageTitle={currentPage} 
-          onMenuClick={() => setIsSidebarOpen(true)} 
+        <Header
+          pageTitle={currentPage}
+          onMenuClick={() => setIsSidebarOpen(true)}
         />
-        
+
         <div className="page-content">
           {renderPage()}
         </div>
