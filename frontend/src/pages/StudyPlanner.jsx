@@ -1,872 +1,1544 @@
 // src/pages/StudyPlanner.jsx
-import React, { useState, useEffect } from "react";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  collection,
   addDoc,
-  query,
-  where,
-  onSnapshot,
+  collection,
   deleteDoc,
-  updateDoc,
-  setDoc,
   doc,
+  onSnapshot,
+  query,
   serverTimestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
-import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
+
+import { useLocation } from "react-router-dom";
+
 import {
-  Clock,
-  BookOpen,
-  PlusCircle,
-  CheckCircle2,
-  Trash2,
   AlertCircle,
-  CheckSquare,
-  Square,
+  BookOpen,
   Calendar,
+  CalendarDays,
+  Check,
+  CheckCircle,
+  CheckCircle2,
+  Clock,
+  Plus,
   Sparkles,
   Timer,
-  Target,
-  BarChart3,
-  Flame,
+  Trash2,
 } from "lucide-react";
 
-// ==========================================
-// 1. TIME & DURATION HELPERS
-// ==========================================
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 
-function timeToMinutes(timeStr) {
-  if (typeof timeStr !== "string") return null;
-  const regex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-  if (!regex.test(timeStr)) return null;
+import {
+  generateStudyRecommendations,
+  getTodayDateString,
+} from "../utils/studyRecommendations";
 
-  const [hours, minutes] = timeStr.split(":").map(Number);
-  return hours * 60 + minutes;
-}
+import { validateStudySession } from "../utils/validation";
+import { formatFirebaseError } from "../utils/errorHandler";
 
-function formatDuration(totalMinutes) {
-  if (!totalMinutes || totalMinutes <= 0) return "0 mins";
-
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours === 0) return `${minutes} mins`;
-  if (minutes === 0) return `${hours} hr${hours > 1 ? "s" : ""}`;
-  return `${hours} hr${hours > 1 ? "s" : ""} ${minutes} mins`;
-}
-
-function calculateStudyDuration(startTime, endTime) {
-  if (!startTime || !endTime) {
-    return { durationMinutes: 0, formattedDuration: "0 mins", isValid: false, error: "Provide both start and end times." };
-  }
-
-  const startMins = timeToMinutes(startTime);
-  const endMins = timeToMinutes(endTime);
-
-  if (startMins === null || endMins === null) {
-    return { durationMinutes: 0, formattedDuration: "0 mins", isValid: false, error: "Invalid time format (HH:mm)." };
-  }
-
-  if (startMins === endMins) {
-    return { durationMinutes: 0, formattedDuration: "0 mins", isValid: false, error: "End time cannot match start time." };
-  }
-
-  if (endMins < startMins) {
-    return { durationMinutes: 0, formattedDuration: "0 mins", isValid: false, error: "End time cannot be earlier than start time." };
-  }
-
-  const diff = endMins - startMins;
-  return { durationMinutes: diff, formattedDuration: formatDuration(diff), isValid: true, error: null };
-}
-
-// ==========================================
-// 2. MAIN COMPONENT
-// ==========================================
+import SmartRecommendations from "../components/studyPlanner/SmartRecommendations";
 
 export default function StudyPlanner() {
   const { currentUser } = useAuth();
+  const location = useLocation();
 
-  const getTodayDateStr = () => {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    const d = String(today.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
+  const formRef = useRef(null);
 
-  const todayDateStr = getTodayDateStr();
+  // ============================================================
+  // FIRESTORE DATA
+  // ============================================================
 
-  // Session Form State
-  const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [subjects, setSubjects] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [studySessions, setStudySessions] = useState([]);
+  const [studyGoals, setStudyGoals] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  // ============================================================
+  // MESSAGES
+  // ============================================================
+
+  const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // ============================================================
+  // FORM
+  // ============================================================
+
+  const [subjectId, setSubjectId] = useState("");
+  const [subjectName, setSubjectName] = useState("");
+
   const [topic, setTopic] = useState("");
-  const [date, setDate] = useState(todayDateStr);
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("10:30");
+
+  const [date, setDate] = useState(() => getTodayDateString());
+
+  const [startTime, setStartTime] = useState("18:00");
+
+  const [duration, setDuration] = useState(60);
+
   const [priority, setPriority] = useState("Medium");
 
-  // Goal Form State
-  const [goalSubjectId, setGoalSubjectId] = useState("");
-  const [targetMinutesInput, setTargetMinutesInput] = useState("");
-
-  // Data State
-  const [subjects, setSubjects] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [goals, setGoals] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [savingGoal, setSavingGoal] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
-  const durationResult = calculateStudyDuration(startTime, endTime);
+  // ============================================================
+  // ACTION STATES
+  // ============================================================
 
-  // 1. Fetch Subjects
+  const [updatingId, setUpdatingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
+  // ============================================================
+  // FILTER
+  // ============================================================
+
+  const [filterTab, setFilterTab] = useState("all");
+
+  // ============================================================
+  // CLEAR SUCCESS MESSAGE
+  // ============================================================
+
+  const showSuccess = (message) => {
+    setSuccessMsg(message);
+
+    setTimeout(() => {
+      setSuccessMsg("");
+    }, 3500);
+  };
+
+  // ============================================================
+  // PREFILL FORM FROM OTHER PAGE
+  // ============================================================
+
   useEffect(() => {
-    if (!currentUser) return;
+    const prefill = location.state?.prefill;
+
+    if (!prefill) {
+      return;
+    }
+
+    if (prefill.subjectId) {
+      setSubjectId(prefill.subjectId);
+    }
+
+    if (prefill.subjectName) {
+      setSubjectName(prefill.subjectName);
+    }
+
+    if (prefill.topic) {
+      setTopic(prefill.topic);
+    }
+
+    if (prefill.duration) {
+      setDuration(Number(prefill.duration));
+    }
+
+    if (prefill.priority) {
+      setPriority(prefill.priority);
+    }
+
+    setDate(getTodayDateString());
+
+    setTimeout(() => {
+      if (formRef.current) {
+        formRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 100);
+  }, [location.state]);
+
+  // ============================================================
+  // FIRESTORE REAL-TIME LISTENERS
+  // ============================================================
+
+  useEffect(() => {
+    if (!currentUser?.uid) {
+      setSubjects([]);
+      setAttendance([]);
+      setAssignments([]);
+      setStudySessions([]);
+      setStudyGoals([]);
+      setLoading(false);
+
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    const userId = currentUser.uid;
 
     const subjectsQuery = query(
       collection(db, "subjects"),
-      where("userId", "==", currentUser.uid)
+      where("userId", "==", userId)
     );
 
+    const attendanceQuery = query(
+      collection(db, "attendance"),
+      where("userId", "==", userId)
+    );
+
+    const assignmentsQuery = query(
+      collection(db, "assignments"),
+      where("userId", "==", userId)
+    );
+
+    const studySessionsQuery = query(
+      collection(db, "studySessions"),
+      where("userId", "==", userId)
+    );
+
+    const studyGoalsQuery = query(
+      collection(db, "studyGoals"),
+      where("userId", "==", userId)
+    );
+
+    let loadedCount = 0;
+
+    const markLoaded = () => {
+      loadedCount += 1;
+
+      if (loadedCount >= 5) {
+        setLoading(false);
+      }
+    };
+
+    const handleSnapshotError = (err) => {
+      console.error("Firestore listener error:", err);
+
+      setError(formatFirebaseError(err));
+
+      markLoaded();
+    };
+
+    // SUBJECTS
     const unsubscribeSubjects = onSnapshot(
       subjectsQuery,
       (snapshot) => {
-        setSubjects(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const data = snapshot.docs.map((document) => ({
+          id: document.id,
+          ...document.data(),
+        }));
+
+        setSubjects(data);
+
+        markLoaded();
       },
-      (err) => {
-        console.error("Error fetching subjects:", err);
-        setError("Failed to load subjects.");
-      }
+      handleSnapshotError
     );
 
-    return () => unsubscribeSubjects();
-  }, [currentUser]);
-
-  // 2. Fetch Study Sessions
-  useEffect(() => {
-    if (!currentUser) return;
-
-    setLoading(true);
-    const sessionsQuery = query(
-      collection(db, "studySessions"),
-      where("userId", "==", currentUser.uid)
-    );
-
-    const unsubscribeSessions = onSnapshot(
-      sessionsQuery,
+    // ATTENDANCE
+    const unsubscribeAttendance = onSnapshot(
+      attendanceQuery,
       (snapshot) => {
-        setSessions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
+        const data = snapshot.docs.map((document) => ({
+          id: document.id,
+          ...document.data(),
+        }));
+
+        setAttendance(data);
+
+        markLoaded();
       },
-      (err) => {
-        console.error("Error fetching study sessions:", err);
-        setError("Failed to load study sessions.");
-        setLoading(false);
-      }
+      handleSnapshotError
     );
 
-    return () => unsubscribeSessions();
-  }, [currentUser]);
-
-  // 3. Fetch Study Goals
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const goalsQuery = query(
-      collection(db, "studyGoals"),
-      where("userId", "==", currentUser.uid)
-    );
-
-    const unsubscribeGoals = onSnapshot(
-      goalsQuery,
+    // ASSIGNMENTS
+    const unsubscribeAssignments = onSnapshot(
+      assignmentsQuery,
       (snapshot) => {
-        setGoals(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const data = snapshot.docs.map((document) => ({
+          id: document.id,
+          ...document.data(),
+        }));
+
+        setAssignments(data);
+
+        markLoaded();
       },
-      (err) => {
-        console.error("Error fetching study goals:", err);
-      }
+      handleSnapshotError
     );
 
-    return () => unsubscribeGoals();
+    // STUDY SESSIONS
+    const unsubscribeStudySessions = onSnapshot(
+      studySessionsQuery,
+      (snapshot) => {
+        const data = snapshot.docs.map((document) => ({
+          id: document.id,
+          ...document.data(),
+        }));
+
+        setStudySessions(data);
+
+        markLoaded();
+      },
+      handleSnapshotError
+    );
+
+    // STUDY GOALS
+    const unsubscribeStudyGoals = onSnapshot(
+      studyGoalsQuery,
+      (snapshot) => {
+        const data = snapshot.docs.map((document) => ({
+          id: document.id,
+          ...document.data(),
+        }));
+
+        setStudyGoals(data);
+
+        markLoaded();
+      },
+      handleSnapshotError
+    );
+
+    return () => {
+      unsubscribeSubjects();
+      unsubscribeAttendance();
+      unsubscribeAssignments();
+      unsubscribeStudySessions();
+      unsubscribeStudyGoals();
+    };
   }, [currentUser]);
 
-  // 4. Create Session Handler
-  const handleSubmitSession = async (e) => {
-    e.preventDefault();
+  // ============================================================
+  // SMART RECOMMENDATIONS
+  // ============================================================
+
+  const recommendations = useMemo(() => {
+    try {
+      return generateStudyRecommendations({
+        subjects,
+        attendance,
+        assignments,
+        studySessions,
+        studyGoals,
+      });
+    } catch (err) {
+      console.error("Recommendation generation error:", err);
+
+      return [];
+    }
+  }, [
+    subjects,
+    attendance,
+    assignments,
+    studySessions,
+    studyGoals,
+  ]);
+
+  // ============================================================
+  // SELECT RECOMMENDATION
+  // ============================================================
+
+  const handleSelectRecommendation = (recommendation) => {
     setError("");
-    setSuccess("");
 
-    if (!selectedSubjectId) {
+    setSubjectId(recommendation.subjectId || "");
+
+    setSubjectName(recommendation.subjectName || "");
+
+    setTopic(
+      recommendation.subjectName
+        ? `Priority Review: ${recommendation.subjectName}`
+        : "Priority Review"
+    );
+
+    setDate(getTodayDateString());
+
+    setDuration(
+      Number(recommendation.recommendedMinutes) || 60
+    );
+
+    if (recommendation.priority === "HIGH") {
+      setPriority("High");
+    } else if (recommendation.priority === "LOW") {
+      setPriority("Low");
+    } else {
+      setPriority("Medium");
+    }
+
+    setTimeout(() => {
+      if (formRef.current) {
+        formRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 100);
+  };
+
+  // ============================================================
+  // SUBJECT DROPDOWN
+  // ============================================================
+
+  const handleSubjectChange = (event) => {
+    const selectedId = event.target.value;
+
+    setSubjectId(selectedId);
+
+    const selectedSubject = subjects.find(
+      (subject) => subject.id === selectedId
+    );
+
+    if (selectedSubject) {
+      setSubjectName(
+        selectedSubject.name ||
+          selectedSubject.subjectName ||
+          ""
+      );
+    } else {
+      setSubjectName("");
+    }
+  };
+
+  // ============================================================
+  // CREATE STUDY SESSION
+  // ============================================================
+
+  const handleCreateSession = async (event) => {
+    event.preventDefault();
+
+    setError("");
+    setSuccessMsg("");
+
+    if (!currentUser?.uid) {
+      setError(
+        "You must be logged in to schedule a study session."
+      );
+
+      return;
+    }
+
+    if (!subjectId) {
       setError("Please select a subject.");
-      return;
-    }
-    if (!topic.trim()) {
-      setError("Please enter a study topic.");
-      return;
-    }
-    if (!date) {
-      setError("Please select a date.");
-      return;
-    }
-    if (!durationResult.isValid) {
-      setError(durationResult.error);
+
       return;
     }
 
-    const targetSubject = subjects.find((s) => s.id === selectedSubjectId);
-    const subjectName = targetSubject ? targetSubject.name : "Unknown Subject";
+    if (!topic.trim()) {
+      setError("Please enter a topic or study goal.");
+
+      return;
+    }
+
+    if (!date) {
+      setError("Please select a study date.");
+
+      return;
+    }
+
+    const numericDuration = Number(duration);
+
+    if (
+      Number.isNaN(numericDuration) ||
+      numericDuration < 15 ||
+      numericDuration > 360
+    ) {
+      setError(
+        "Duration must be between 15 and 360 minutes."
+      );
+
+      return;
+    }
+
+    const validation = validateStudySession({
+      subjectId,
+      topic: topic.trim(),
+      durationMinutes: numericDuration,
+      date,
+    });
+
+    if (!validation.isValid) {
+      setError(
+        validation.error || "Invalid study session."
+      );
+
+      return;
+    }
 
     setSubmitting(true);
 
     try {
       await addDoc(collection(db, "studySessions"), {
-        subjectId: selectedSubjectId,
-        subjectName: subjectName,
-        topic: topic.trim(),
-        date: date,
-        startTime: startTime,
-        endTime: endTime,
-        duration: durationResult.durationMinutes,
-        priority: priority,
-        status: "Scheduled",
         userId: currentUser.uid,
+
+        subjectId,
+
+        subjectName:
+          subjectName || "General Study",
+
+        topic: validation.sanitized?.topic || topic.trim(),
+
+        date:
+          validation.sanitized?.date || date,
+
+        startTime: startTime || "18:00",
+
+        durationMinutes:
+          Number(
+            validation.sanitized?.durationMinutes
+          ) || numericDuration,
+
+        priority: priority || "Medium",
+
+        status: "Scheduled",
+
         createdAt: serverTimestamp(),
+
+        updatedAt: serverTimestamp(),
       });
 
-      setSuccess(`Study session for "${topic.trim()}" scheduled!`);
+      showSuccess(
+        `Study session "${topic.trim()}" scheduled successfully!`
+      );
+
+      // Reset only necessary fields
       setTopic("");
-      setSelectedSubjectId("");
+      setDuration(60);
+      setPriority("Medium");
+      setStartTime("18:00");
     } catch (err) {
-      console.error("Error adding session:", err);
-      setError("Failed to schedule session.");
+      console.error(
+        "Error creating study session:",
+        err
+      );
+
+      setError(formatFirebaseError(err));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 5. Save Weekly Goal Handler
-  const handleSaveGoal = async (e) => {
-    e.preventDefault();
+  // ============================================================
+  // TOGGLE COMPLETE / SCHEDULED
+  // ============================================================
+
+  const handleToggleStatus = async (session) => {
     setError("");
-    setSuccess("");
+    setSuccessMsg("");
 
-    const targetMins = Number(targetMinutesInput);
-    if (!goalSubjectId) {
-      setError("Please select a subject to set a weekly goal.");
-      return;
-    }
-    if (isNaN(targetMins) || targetMins <= 0) {
-      setError("Please provide a valid target duration in minutes greater than 0.");
+    if (!currentUser?.uid) {
+      setError("You must be logged in.");
+
       return;
     }
 
-    const targetSubject = subjects.find((s) => s.id === goalSubjectId);
-    const subjectName = targetSubject ? targetSubject.name : "Unknown Subject";
+    if (session.userId !== currentUser.uid) {
+      setError(
+        "Unauthorized: You can only update your own study sessions."
+      );
 
-    setSavingGoal(true);
+      return;
+    }
+
+    const newStatus =
+      session.status === "Completed"
+        ? "Scheduled"
+        : "Completed";
+
+    setUpdatingId(session.id);
 
     try {
-      // Deterministic document ID ensures 1 goal per subject per user
-      const goalDocId = `${currentUser.uid}_${goalSubjectId}`;
-      const goalRef = doc(db, "studyGoals", goalDocId);
+      const sessionRef = doc(
+        db,
+        "studySessions",
+        session.id
+      );
 
-      await setDoc(goalRef, {
-        userId: currentUser.uid,
-        subjectId: goalSubjectId,
-        subjectName: subjectName,
-        targetMinutes: targetMins,
+      await updateDoc(sessionRef, {
+        status: newStatus,
+
+        completedAt:
+          newStatus === "Completed"
+            ? serverTimestamp()
+            : null,
+
         updatedAt: serverTimestamp(),
       });
 
-      setSuccess(`Weekly goal for ${subjectName} set to ${targetMins} mins!`);
-      setGoalSubjectId("");
-      setTargetMinutesInput("");
+      if (newStatus === "Completed") {
+        showSuccess(
+          `"${session.topic}" marked as completed!`
+        );
+      } else {
+        showSuccess(
+          `"${session.topic}" moved back to scheduled.`
+        );
+      }
     } catch (err) {
-      console.error("Error saving goal:", err);
-      setError("Failed to save study goal.");
+      console.error(
+        "Error updating study session:",
+        err
+      );
+
+      setError(formatFirebaseError(err));
     } finally {
-      setSavingGoal(false);
+      setUpdatingId(null);
     }
   };
 
-  // 6. Delete Goal Handler
-  const handleDeleteGoal = async (goalId) => {
-    try {
-      await deleteDoc(doc(db, "studyGoals", goalId));
-    } catch (err) {
-      console.error("Error deleting goal:", err);
-      setError("Failed to delete goal.");
-    }
-  };
+  // ============================================================
+  // DELETE SESSION
+  // ============================================================
 
-  // 7. Toggle Completion Status
-  const handleToggleComplete = async (session) => {
-    setError("");
-    const newStatus = session.status === "Completed" ? "Scheduled" : "Completed";
-
-    try {
-      const sessionRef = doc(db, "studySessions", session.id);
-      await updateDoc(sessionRef, {
-        status: newStatus,
-        completedAt: newStatus === "Completed" ? serverTimestamp() : null,
-      });
-    } catch (err) {
-      console.error("Error updating status:", err);
-      setError("Failed to update status.");
-    }
-  };
-
-  // 8. Delete Session
   const handleDeleteSession = async (session) => {
-    if (session.userId !== currentUser.uid) {
-      setError("Unauthorized deletion attempt.");
+    setError("");
+    setSuccessMsg("");
+
+    if (!currentUser?.uid) {
+      setError("You must be logged in.");
+
       return;
     }
 
-    if (!window.confirm(`Delete study session "${session.topic}"?`)) return;
+    if (session.userId !== currentUser.uid) {
+      setError(
+        "Unauthorized: You can only delete your own study sessions."
+      );
+
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete study session "${session.topic}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(session.id);
 
     try {
-      await deleteDoc(doc(db, "studySessions", session.id));
+      const sessionRef = doc(
+        db,
+        "studySessions",
+        session.id
+      );
+
+      await deleteDoc(sessionRef);
+
+      showSuccess("Study session deleted successfully.");
     } catch (err) {
-      console.error("Error deleting session:", err);
-      setError("Failed to delete session.");
+      console.error(
+        "Error deleting study session:",
+        err
+      );
+
+      setError(formatFirebaseError(err));
+    } finally {
+      setDeletingId(null);
     }
   };
 
-  // ==========================================
-  // STATISTICAL & GOAL CALCULATIONS
-  // ==========================================
+  // ============================================================
+  // METRICS
+  // ============================================================
 
-  // Today's Progress
-  const todaySessions = sessions
-    .filter((s) => s.date === todayDateStr)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const metrics = useMemo(() => {
+    const today = getTodayDateString();
 
-  const totalTodaySessions = todaySessions.length;
-  const completedTodaySessions = todaySessions.filter((s) => s.status === "Completed").length;
-  const progressPercentage = totalTodaySessions > 0 
-    ? Math.round((completedTodaySessions / totalTodaySessions) * 100) 
-    : 0;
+    const todaySessions = studySessions.filter(
+      (session) => session.date === today
+    );
 
-  // Current Week Boundaries (Monday to Sunday)
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const diffToMonday = (dayOfWeek + 6) % 7;
+    const completedSessions = studySessions.filter(
+      (session) => session.status === "Completed"
+    );
 
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - diffToMonday);
-  startOfWeek.setHours(0, 0, 0, 0);
+    const totalMinutes = studySessions.reduce(
+      (total, session) => {
+        const minutes = Number(
+          session.durationMinutes ||
+            session.duration ||
+            0
+        );
 
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
+        return total + (Number.isNaN(minutes) ? 0 : minutes);
+      },
+      0
+    );
 
-  const completedThisWeek = sessions.filter((s) => {
-    if (s.status !== "Completed" || !s.date) return false;
-    const sessionDate = new Date(`${s.date}T00:00:00`);
-    return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
-  });
+    const hours = Math.floor(totalMinutes / 60);
 
-  // Map of completed study minutes per subjectId
-  const weeklySubjectMinutes = completedThisWeek.reduce((acc, curr) => {
-    const id = curr.subjectId;
-    acc[id] = (acc[id] || 0) + (Number(curr.duration) || 0);
-    return acc;
-  }, {});
+    const minutes = totalMinutes % 60;
 
-  const getPriorityStyle = (lvl) => {
-    switch (lvl) {
+    const completionRate =
+      studySessions.length > 0
+        ? Math.round(
+            (completedSessions.length /
+              studySessions.length) *
+              100
+          )
+        : 0;
+
+    return {
+      todayCount: todaySessions.length,
+
+      completedCount: completedSessions.length,
+
+      totalTimeFormatted: `${hours}h ${minutes}m`,
+
+      completionRate,
+    };
+  }, [studySessions]);
+
+  // ============================================================
+  // FILTER SESSIONS
+  // ============================================================
+
+  const todayDateStr = getTodayDateString();
+
+  const filteredSessions = useMemo(() => {
+    return [...studySessions]
+      .filter((session) => {
+        if (filterTab === "today") {
+          return session.date === todayDateStr;
+        }
+
+        if (filterTab === "upcoming") {
+          return (
+            session.date >= todayDateStr &&
+            session.status !== "Completed"
+          );
+        }
+
+        if (filterTab === "completed") {
+          return session.status === "Completed";
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        // Completed sessions go last
+        if (
+          (a.status === "Completed") !==
+          (b.status === "Completed")
+        ) {
+          return a.status === "Completed" ? 1 : -1;
+        }
+
+        // Nearest date first
+        const dateComparison = (
+          a.date || ""
+        ).localeCompare(b.date || "");
+
+        if (dateComparison !== 0) {
+          return dateComparison;
+        }
+
+        // Earlier time first
+        return (
+          a.startTime || ""
+        ).localeCompare(b.startTime || "");
+      });
+  }, [
+    studySessions,
+    filterTab,
+    todayDateStr,
+  ]);
+
+  // ============================================================
+  // PRIORITY BADGE
+  // ============================================================
+
+  const getPriorityBadge = (priorityValue) => {
+    switch (priorityValue) {
       case "High":
-        return { color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" };
-      case "Medium":
-        return { color: "#d97706", bg: "#fffbeb", border: "#fde68a" };
+        return {
+          color: "#dc2626",
+          bg: "#fef2f2",
+          border: "#fecaca",
+        };
+
       case "Low":
+        return {
+          color: "#16a34a",
+          bg: "#f0fdf4",
+          border: "#bbf7d0",
+        };
+
+      case "Medium":
       default:
-        return { color: "#16a34a", bg: "#f0fdf4", border: "#86efac" };
+        return {
+          color: "#d97706",
+          bg: "#fffbeb",
+          border: "#fde68a",
+        };
     }
   };
 
-  return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "1.5rem" }}>
-      {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ margin: "0 0 0.5rem 0", color: "var(--text-primary)" }}>
-          Study Planner & Goals
-        </h1>
-        <p style={{ margin: 0, color: "var(--text-secondary)" }}>
-          Plan study sessions and track progress against your weekly learning targets.
-        </p>
-      </div>
+  // ============================================================
+  // NOT LOGGED IN
+  // ============================================================
 
-      {/* Alerts */}
-      {error && (
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", backgroundColor: "#fef2f2", color: "#991b1b", borderRadius: "8px", marginBottom: "1.5rem", border: "1px solid #fecaca" }}>
-          <AlertCircle size={18} />
-          <span>{error}</span>
-        </div>
-      )}
-      {success && (
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", backgroundColor: "#ecfdf5", color: "#065f46", borderRadius: "8px", marginBottom: "1.5rem", border: "1px solid #a7f3d0" }}>
-          <CheckCircle2 size={18} />
-          <span>{success}</span>
-        </div>
-      )}
-
-      {/* 1. WEEKLY STUDY GOALS PROGRESS SECTION */}
+  if (!currentUser) {
+    return (
       <div
         style={{
-          backgroundColor: "var(--bg-secondary, #ffffff)",
-          border: "1px solid var(--border-color, #e2e8f0)",
-          borderRadius: "12px",
-          padding: "1.5rem",
-          marginBottom: "2rem",
+          padding: "3rem",
+          textAlign: "center",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Flame size={22} color="#ea580c" />
-            <h2 style={{ margin: 0, fontSize: "18px", color: "var(--text-primary)" }}>
-              Weekly Study Goals
-            </h2>
-          </div>
-          <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-            Current Week Progress
-          </span>
-        </div>
+        <AlertCircle
+          size={40}
+          color="#ef4444"
+        />
 
-        {/* Set Goal Mini Form */}
-        <form
-          onSubmit={handleSaveGoal}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "0.75rem",
-            padding: "1rem",
-            backgroundColor: "#f8fafc",
-            borderRadius: "8px",
-            border: "1px solid #e2e8f0",
-            marginBottom: "1.5rem",
-            alignItems: "flex-end",
-          }}
-        >
-          <div>
-            <label style={{ display: "block", marginBottom: "0.3rem", fontSize: "13px", fontWeight: 500 }}>
-              Subject
-            </label>
-            <select
-              value={goalSubjectId}
-              onChange={(e) => setGoalSubjectId(e.target.value)}
-              required
-              style={{ width: "100%", padding: "0.55rem", borderRadius: "6px", border: "1px solid #cbd5e1", backgroundColor: "#fff" }}
-            >
-              <option value="">-- Select Subject --</option>
-              {subjects.map((sub) => (
-                <option key={sub.id} value={sub.id}>
-                  {sub.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <h2>Please Login</h2>
 
-          <div>
-            <label style={{ display: "block", marginBottom: "0.3rem", fontSize: "13px", fontWeight: 500 }}>
-              Target (Minutes / Week)
-            </label>
-            <input
-              type="number"
-              min="1"
-              step="15"
-              required
-              value={targetMinutesInput}
-              onChange={(e) => setTargetMinutesInput(e.target.value)}
-              placeholder="e.g., 300 (5 hrs)"
-              style={{ width: "100%", padding: "0.55rem", borderRadius: "6px", border: "1px solid #cbd5e1", boxSizing: "border-box" }}
-            />
-          </div>
+        <p>
+          Login to access your Study Planner.
+        </p>
+      </div>
+    );
+  }
 
-          <button
-            type="submit"
-            disabled={savingGoal || subjects.length === 0}
+  // ============================================================
+  // UI
+  // ============================================================
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+        padding: "2rem 2.5rem",
+        boxSizing: "border-box",
+        minHeight: "100%",
+      }}
+    >
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1.25rem",
+          marginBottom: "2rem",
+          paddingBottom: "1.5rem",
+          borderBottom: "1px solid #e2e8f0",
+        }}
+      >
+        <div>
+          <div
             style={{
-              padding: "0.6rem 1.2rem",
-              backgroundColor: savingGoal ? "#94a3b8" : "#ea580c",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "6px",
-              fontWeight: 600,
-              cursor: savingGoal || subjects.length === 0 ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              marginBottom: "6px",
             }}
           >
-            {savingGoal ? "Saving..." : "Set Goal"}
-          </button>
-        </form>
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                backgroundColor: "#eff6ff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#2563eb",
+              }}
+            >
+              <CalendarDays size={22} />
+            </div>
 
-        {/* Goals Progress Cards */}
-        {goals.length === 0 ? (
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--text-secondary)", fontStyle: "italic" }}>
-            No weekly study goals set. Pick a subject above to start tracking your targets!
-          </p>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
-            {goals.map((g) => {
-              const completedMins = weeklySubjectMinutes[g.subjectId] || 0;
-              const targetMins = g.targetMinutes || 1;
-              const remainingMins = Math.max(0, targetMins - completedMins);
-
-              const targetHours = (targetMins / 60).toFixed(1);
-              const completedHours = (completedMins / 60).toFixed(1);
-              const remainingHours = (remainingMins / 60).toFixed(1);
-
-              const goalPercent = Math.min(100, Math.round((completedMins / targetMins) * 100));
-              const isGoalMet = completedMins >= targetMins;
-
-              return (
-                <div
-                  key={g.id}
-                  style={{
-                    backgroundColor: "#ffffff",
-                    border: `1px solid ${isGoalMet ? "#86efac" : "#e2e8f0"}`,
-                    borderRadius: "10px",
-                    padding: "1rem 1.25rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
-                      <h4 style={{ margin: 0, fontSize: "15px", color: "var(--text-primary)" }}>
-                        {g.subjectName}
-                      </h4>
-                      <button
-                        onClick={() => handleDeleteGoal(g.id)}
-                        style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", padding: "2px" }}
-                        title="Remove Goal"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-
-                    {/* Progress Percentage & Label */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.4rem" }}>
-                      <span style={{ fontSize: "20px", fontWeight: 700, color: isGoalMet ? "#16a34a" : "#ea580c" }}>
-                        {goalPercent}%
-                      </span>
-                      <span style={{ fontSize: "12px", color: isGoalMet ? "#16a34a" : "var(--text-secondary)", fontWeight: 500 }}>
-                        {isGoalMet ? "Goal Reached!" : `${remainingHours} hrs remaining`}
-                      </span>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div style={{ width: "100%", height: "8px", backgroundColor: "#f1f5f9", borderRadius: "4px", overflow: "hidden", marginBottom: "0.75rem" }}>
-                      <div
-                        style={{
-                          width: `${goalPercent}%`,
-                          height: "100%",
-                          backgroundColor: isGoalMet ? "#16a34a" : "#ea580c",
-                          transition: "width 0.4s ease",
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Hours Breakdown Footer */}
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-secondary)", paddingTop: "0.5rem", borderTop: "1px solid #f8fafc" }}>
-                    <span>Target: <strong>{targetHours}h</strong></span>
-                    <span>Done: <strong>{completedHours}h</strong></span>
-                    <span>Left: <strong>{remainingHours}h</strong></span>
-                  </div>
-                </div>
-              );
-            })}
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "1.75rem",
+                fontWeight: "700",
+                color: "#0f172a",
+              }}
+            >
+              Study Planner & Roadmap
+            </h1>
           </div>
-        )}
+
+          <p
+            style={{
+              margin: 0,
+              color: "#64748b",
+              fontSize: "0.95rem",
+            }}
+          >
+            Plan focused study sessions, follow smart
+            recommendations, and complete your study
+            targets.
+          </p>
+        </div>
       </div>
 
-      {/* 2. TODAY'S PROGRESS & SCHEDULE FORM */}
+      {/* ======================================================
+          KPI CARDS
+      ====================================================== */}
+
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(220px, 1fr))",
           gap: "1.25rem",
           marginBottom: "2rem",
         }}
       >
-        {/* Today's Completion Widget */}
+        <MetricCard
+          icon={<Calendar size={22} />}
+          title="Sessions Today"
+          value={`${metrics.todayCount} planned`}
+        />
+
+        <MetricCard
+          icon={<Timer size={22} />}
+          title="Total Study Time"
+          value={metrics.totalTimeFormatted}
+        />
+
+        <MetricCard
+          icon={<CheckCircle size={22} />}
+          title="Completion Rate"
+          value={`${metrics.completionRate}% (${metrics.completedCount}/${studySessions.length})`}
+        />
+      </div>
+
+      {/* ======================================================
+          ERROR
+      ====================================================== */}
+
+      {error && (
+        <MessageBox
+          icon={<AlertCircle size={20} />}
+          background="#fef2f2"
+          border="#fecaca"
+          color="#991b1b"
+        >
+          {error}
+        </MessageBox>
+      )}
+
+      {/* ======================================================
+          SUCCESS
+      ====================================================== */}
+
+      {successMsg && (
+        <MessageBox
+          icon={<CheckCircle2 size={20} />}
+          background="#ecfdf5"
+          border="#a7f3d0"
+          color="#065f46"
+        >
+          {successMsg}
+        </MessageBox>
+      )}
+
+      {/* ======================================================
+          SMART RECOMMENDATIONS
+      ====================================================== */}
+
+      <div style={{ marginBottom: "2rem" }}>
+        <SmartRecommendations
+          recommendations={recommendations}
+          onSelectRecommendation={
+            handleSelectRecommendation
+          }
+          loading={loading}
+        />
+      </div>
+
+      {/* ======================================================
+          CREATE FORM
+      ====================================================== */}
+
+      <div
+        ref={formRef}
+        id="study-session-form"
+        style={{
+          backgroundColor: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "16px",
+          padding: "1.75rem 2rem",
+          marginBottom: "2.5rem",
+          boxShadow:
+            "0 1px 3px rgba(0,0,0,0.03)",
+        }}
+      >
+        <h3
+          style={{
+            margin: "0 0 1.25rem 0",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            color: "#1e293b",
+          }}
+        >
+          <Sparkles
+            size={18}
+            color="#2563eb"
+          />
+
+          Schedule Study Session
+        </h3>
+
+        <form onSubmit={handleCreateSession}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "1.25rem",
+              marginBottom: "1.5rem",
+            }}
+          >
+            {/* SUBJECT */}
+
+            <FormGroup label="Course / Subject *">
+              <select
+                value={subjectId}
+                onChange={handleSubjectChange}
+                disabled={submitting}
+                style={inputStyle}
+              >
+                <option value="">
+                  Select Enrolled Subject
+                </option>
+
+                {subjects.map((subject) => (
+                  <option
+                    key={subject.id}
+                    value={subject.id}
+                  >
+                    {subject.name ||
+                      subject.subjectName ||
+                      "Unnamed Subject"}
+                  </option>
+                ))}
+              </select>
+            </FormGroup>
+
+            {/* TOPIC */}
+
+            <FormGroup label="Topic / Chapter / Goal *">
+              <input
+                type="text"
+                value={topic}
+                placeholder="e.g. Unit 3 Revision"
+                onChange={(event) =>
+                  setTopic(event.target.value)
+                }
+                disabled={submitting}
+                style={inputStyle}
+              />
+            </FormGroup>
+
+            {/* DATE */}
+
+            <FormGroup label="Date *">
+              <input
+                type="date"
+                value={date}
+                onChange={(event) =>
+                  setDate(event.target.value)
+                }
+                disabled={submitting}
+                style={inputStyle}
+              />
+            </FormGroup>
+
+            {/* TIME */}
+
+            <FormGroup label="Start Time">
+              <input
+                type="time"
+                value={startTime}
+                onChange={(event) =>
+                  setStartTime(event.target.value)
+                }
+                disabled={submitting}
+                style={inputStyle}
+              />
+            </FormGroup>
+
+            {/* DURATION */}
+
+            <FormGroup label="Duration (Minutes)">
+              <input
+                type="number"
+                min="15"
+                max="360"
+                step="15"
+                value={duration}
+                onChange={(event) =>
+                  setDuration(
+                    Number(event.target.value)
+                  )
+                }
+                disabled={submitting}
+                style={inputStyle}
+              />
+            </FormGroup>
+
+            {/* PRIORITY */}
+
+            <FormGroup label="Priority Level">
+              <select
+                value={priority}
+                onChange={(event) =>
+                  setPriority(event.target.value)
+                }
+                disabled={submitting}
+                style={inputStyle}
+              >
+                <option value="High">
+                  High Priority
+                </option>
+
+                <option value="Medium">
+                  Medium Priority
+                </option>
+
+                <option value="Low">
+                  Low Priority
+                </option>
+              </select>
+            </FormGroup>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "0.75rem 1.75rem",
+                borderRadius: "8px",
+                border: "none",
+                backgroundColor: submitting
+                  ? "#94a3b8"
+                  : "#2563eb",
+                color: "#ffffff",
+                fontWeight: 600,
+                cursor: submitting
+                  ? "not-allowed"
+                  : "pointer",
+              }}
+            >
+              <Plus size={16} />
+
+              {submitting
+                ? "Scheduling..."
+                : "Add to Schedule"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* ======================================================
+          SESSION HEADER + FILTERS
+      ====================================================== */}
+
+      <div>
         <div
           style={{
-            backgroundColor: "var(--bg-secondary, #ffffff)",
-            border: "1px solid var(--border-color, #e2e8f0)",
-            borderRadius: "12px",
-            padding: "1.5rem",
             display: "flex",
-            flexDirection: "column",
             justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "1.25rem",
+            flexWrap: "wrap",
+            gap: "1rem",
           }}
         >
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Target size={20} color="var(--accent-color, #2563eb)" />
-                <h3 style={{ margin: 0, fontSize: "16px", color: "var(--text-primary)" }}>
-                  Today's Session Progress
-                </h3>
-              </div>
-              <span style={{ fontSize: "18px", fontWeight: 700, color: progressPercentage === 100 && totalTodaySessions > 0 ? "#16a34a" : "var(--accent-color, #2563eb)" }}>
-                {progressPercentage}%
-              </span>
-            </div>
-
-            <div style={{ width: "100%", height: "8px", backgroundColor: "#e2e8f0", borderRadius: "4px", overflow: "hidden", marginBottom: "0.75rem" }}>
-              <div
-                style={{
-                  width: `${progressPercentage}%`,
-                  height: "100%",
-                  backgroundColor: progressPercentage === 100 ? "#16a34a" : "var(--accent-color, #2563eb)",
-                  transition: "width 0.4s ease",
-                }}
-              />
-            </div>
-          </div>
-
-          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-            {totalTodaySessions === 0 ? (
-              "No sessions scheduled for today"
-            ) : (
-              <>Completed <strong>{completedTodaySessions}</strong> of <strong>{totalTodaySessions}</strong> session{totalTodaySessions > 1 ? "s" : ""}</>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Add Session Form */}
-        <div
-          style={{
-            backgroundColor: "var(--bg-secondary, #ffffff)",
-            border: "1px solid var(--border-color, #e2e8f0)",
-            borderRadius: "12px",
-            padding: "1.5rem",
-          }}
-        >
-          <h3 style={{ marginTop: 0, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "8px", fontSize: "16px" }}>
-            <PlusCircle size={18} color="var(--accent-color, #2563eb)" />
-            Schedule Study Session
-          </h3>
-
-          <form onSubmit={handleSubmitSession}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
-              <div>
-                <select
-                  value={selectedSubjectId}
-                  onChange={(e) => setSelectedSubjectId(e.target.value)}
-                  required
-                  style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid #cbd5e1", backgroundColor: "#fff" }}
-                >
-                  <option value="">-- Subject --</option>
-                  {subjects.map((sub) => (
-                    <option key={sub.id} value={sub.id}>
-                      {sub.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid #cbd5e1", boxSizing: "border-box" }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: "0.75rem" }}>
-              <input
-                type="text"
-                required
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="Topic / Goal (e.g., Arrays & Linked Lists)"
-                style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid #cbd5e1", boxSizing: "border-box" }}
-              />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <input
-                type="time"
-                required
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                style={{ width: "100%", padding: "0.45rem", borderRadius: "6px", border: "1px solid #cbd5e1", boxSizing: "border-box" }}
-              />
-              <input
-                type="time"
-                required
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                style={{ width: "100%", padding: "0.45rem", borderRadius: "6px", border: "1px solid #cbd5e1", boxSizing: "border-box" }}
-              />
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                style={{ width: "100%", padding: "0.45rem", borderRadius: "6px", border: "1px solid #cbd5e1", backgroundColor: "#fff" }}
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Med</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "12px", color: durationResult.isValid ? "#15803d" : "#dc2626" }}>
-                {durationResult.isValid ? `${durationResult.formattedDuration}` : "Invalid time"}
-              </span>
-
-              <button
-                type="submit"
-                disabled={submitting || subjects.length === 0 || !durationResult.isValid}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: submitting || !durationResult.isValid ? "#94a3b8" : "var(--accent-color, #2563eb)",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontWeight: 600,
-                  fontSize: "13px",
-                  cursor: submitting || !durationResult.isValid ? "not-allowed" : "pointer",
-                }}
-              >
-                {submitting ? "Saving..." : "Add"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      {/* 3. TODAY'S SESSIONS LIST */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Sparkles size={20} color="#d97706" />
-            <h3 style={{ margin: 0, fontSize: "18px", color: "var(--text-primary)" }}>
-              Today's Schedule ({todaySessions.length})
+            <h3
+              style={{
+                margin: 0,
+                color: "#0f172a",
+              }}
+            >
+              Scheduled Study Sessions
             </h3>
-          </div>
-          <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-            Date: <strong>{todayDateStr}</strong>
-          </span>
-        </div>
 
-        {loading ? (
-          <p style={{ color: "var(--text-secondary)" }}>Loading today's sessions...</p>
-        ) : todaySessions.length === 0 ? (
+            <span
+              style={{
+                fontSize: "0.85rem",
+                color: "#64748b",
+              }}
+            >
+              Showing {filteredSessions.length} of{" "}
+              {studySessions.length} total
+            </span>
+          </div>
+
           <div
             style={{
-              backgroundColor: "#f8fafc",
-              border: "1px dashed #cbd5e1",
+              display: "flex",
+              backgroundColor: "#f1f5f9",
+              padding: "3px",
               borderRadius: "10px",
-              padding: "2rem",
-              textAlign: "center",
-              color: "var(--text-secondary)",
-              fontSize: "14px",
+              gap: "2px",
             }}
           >
-            No study sessions scheduled for today. Use the form above to add one!
+            {[
+              ["all", "All"],
+              ["today", "Today"],
+              ["upcoming", "Upcoming"],
+              ["completed", "Completed"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() =>
+                  setFilterTab(id)
+                }
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  border: "none",
+
+                  backgroundColor:
+                    filterTab === id
+                      ? "#ffffff"
+                      : "transparent",
+
+                  color:
+                    filterTab === id
+                      ? "#2563eb"
+                      : "#64748b",
+
+                  fontWeight:
+                    filterTab === id
+                      ? 700
+                      : 500,
+
+                  cursor: "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ====================================================
+            LOADING
+        ==================================================== */}
+
+        {loading ? (
+          <div
+            style={{
+              padding: "3rem",
+              textAlign: "center",
+              color: "#64748b",
+            }}
+          >
+            Loading study roadmap...
+          </div>
+        ) : filteredSessions.length === 0 ? (
+          /* ==================================================
+              EMPTY STATE
+          ================================================== */
+
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px dashed #cbd5e1",
+              borderRadius: "16px",
+              padding: "3.5rem 2rem",
+              textAlign: "center",
+            }}
+          >
+            <BookOpen
+              size={40}
+              color="#94a3b8"
+            />
+
+            <h4>
+              No study sessions in this view
+            </h4>
+
+            <p style={{ color: "#64748b" }}>
+              Schedule a session above or select a
+              smart recommendation.
+            </p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            {todaySessions.map((session) => {
-              const prio = getPriorityStyle(session.priority);
-              const isCompleted = session.status === "Completed";
+          /* ==================================================
+              SESSION LIST
+          ================================================== */
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.85rem",
+            }}
+          >
+            {filteredSessions.map((session) => {
+              const isDone =
+                session.status === "Completed";
+
+              const isUpdating =
+                updatingId === session.id;
+
+              const isDeleting =
+                deletingId === session.id;
+
+              const isToday =
+                session.date === todayDateStr;
+
+              const badge =
+                getPriorityBadge(
+                  session.priority
+                );
 
               return (
                 <div
                   key={session.id}
                   style={{
-                    backgroundColor: "var(--bg-secondary, #ffffff)",
-                    border: `1px solid ${isCompleted ? "#e2e8f0" : "var(--border-color, #e2e8f0)"}`,
-                    borderLeft: `4px solid ${prio.color}`,
-                    borderRadius: "10px",
-                    padding: "1rem 1.25rem",
                     display: "flex",
+                    justifyContent:
+                      "space-between",
                     alignItems: "center",
-                    justifyContent: "space-between",
                     gap: "1rem",
-                    opacity: isCompleted ? 0.7 : 1,
-                    transition: "all 0.2s ease",
+                    flexWrap: "wrap",
+
+                    padding: "1rem 1.25rem",
+
+                    borderRadius: "12px",
+
+                    border: `1.5px solid ${
+                      isToday && !isDone
+                        ? "#bfdbfe"
+                        : "#e2e8f0"
+                    }`,
+
+                    backgroundColor: isDone
+                      ? "#f8fafc"
+                      : "#ffffff",
+
+                    opacity:
+                      isDone || isDeleting
+                        ? 0.65
+                        : 1,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem", flex: 1 }}>
-                    <button
-                      onClick={() => handleToggleComplete(session)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: 0,
-                        color: isCompleted ? "#16a34a" : "#94a3b8",
-                      }}
-                      title={isCompleted ? "Mark Scheduled" : "Mark Completed"}
-                    >
-                      {isCompleted ? <CheckSquare size={22} /> : <Square size={22} />}
-                    </button>
+                  {/* SESSION INFO */}
 
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
-                        <h4
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "8px",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      <strong
+                        style={{
+                          color: isDone
+                            ? "#94a3b8"
+                            : "#0f172a",
+
+                          textDecoration: isDone
+                            ? "line-through"
+                            : "none",
+                        }}
+                      >
+                        {session.topic ||
+                          "Study Session"}
+                      </strong>
+
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          backgroundColor:
+                            "#f1f5f9",
+                          padding: "3px 8px",
+                          borderRadius: "999px",
+                        }}
+                      >
+                        {session.subjectName ||
+                          "General Study"}
+                      </span>
+
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          padding: "3px 8px",
+                          borderRadius: "999px",
+                          backgroundColor:
+                            badge.bg,
+                          color: badge.color,
+                          border: `1px solid ${badge.border}`,
+                        }}
+                      >
+                        {session.priority ||
+                          "Medium"}
+                      </span>
+
+                      {isToday && !isDone && (
+                        <span
                           style={{
-                            margin: 0,
-                            fontSize: "15px",
-                            textDecoration: isCompleted ? "line-through" : "none",
-                            color: isCompleted ? "var(--text-secondary)" : "var(--text-primary)",
+                            fontSize:
+                              "0.75rem",
+                            padding:
+                              "3px 8px",
+                            borderRadius:
+                              "999px",
+                            backgroundColor:
+                              "#eff6ff",
+                            color: "#2563eb",
+                            fontWeight: 700,
                           }}
                         >
-                          {session.topic}
-                        </h4>
+                          Today
+                        </span>
+                      )}
+                    </div>
 
-                        <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "9999px", backgroundColor: "#f1f5f9", color: "#475569", fontWeight: 500 }}>
-                          {session.subjectName}
-                        </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "6px",
+                        color: "#64748b",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      <Calendar size={13} />
 
-                        <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "9999px", backgroundColor: prio.bg, color: prio.color, border: `1px solid ${prio.border}`, fontWeight: 600 }}>
-                          {session.priority}
-                        </span>
+                      <span>
+                        {session.date ||
+                          "No date"}
+                      </span>
 
-                        <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "9999px", backgroundColor: isCompleted ? "#dcfce7" : "#eff6ff", color: isCompleted ? "#15803d" : "#1d4ed8", border: `1px solid ${isCompleted ? "#86efac" : "#bfdbfe"}`, fontWeight: 600 }}>
-                          {session.status}
-                        </span>
-                      </div>
+                      <span>•</span>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#64748b" }}>
-                        <Clock size={13} />
-                        <span>
-                          {session.startTime} – {session.endTime}
-                        </span>
-                        <span style={{ margin: "0 2px" }}>•</span>
-                        <Timer size={13} />
-                        <span>
-                          Duration: <strong>{formatDuration(session.duration)}</strong>
-                        </span>
-                      </div>
+                      <Clock size={13} />
+
+                      <span>
+                        {session.startTime ||
+                          "18:00"}{" "}
+                        (
+                        {session.durationMinutes ||
+                          session.duration ||
+                          60}{" "}
+                        min)
+                      </span>
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleDeleteSession(session)}
+                  {/* ACTIONS */}
+
+                  <div
                     style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#ef4444",
-                      cursor: "pointer",
-                      padding: "6px",
-                      borderRadius: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
                     }}
-                    title="Delete Study Session"
                   >
-                    <Trash2 size={16} />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleToggleStatus(
+                          session
+                        )
+                      }
+                      disabled={
+                        isUpdating ||
+                        isDeleting
+                      }
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "7px 14px",
+                        borderRadius: "8px",
+
+                        border:
+                          "1px solid #bfdbfe",
+
+                        backgroundColor: isDone
+                          ? "#dcfce7"
+                          : "#eff6ff",
+
+                        color: isDone
+                          ? "#15803d"
+                          : "#1d4ed8",
+
+                        cursor:
+                          isUpdating ||
+                          isDeleting
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      {isUpdating ? (
+                        "Updating..."
+                      ) : isDone ? (
+                        <>
+                          <Check size={14} />
+                          Done
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2
+                            size={14}
+                          />
+                          Mark Done
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      title="Delete Session"
+                      onClick={() =>
+                        handleDeleteSession(
+                          session
+                        )
+                      }
+                      disabled={
+                        isDeleting ||
+                        isUpdating
+                      }
+                      style={{
+                        padding: "7px",
+                        border: "none",
+                        background:
+                          "transparent",
+                        color: "#ef4444",
+                        cursor:
+                          isDeleting ||
+                          isUpdating
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      <Trash2 size={17} />
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -876,3 +1548,134 @@ export default function StudyPlanner() {
     </div>
   );
 }
+
+// ============================================================
+// REUSABLE COMPONENTS
+// ============================================================
+
+function MetricCard({
+  icon,
+  title,
+  value,
+}) {
+  return (
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        padding: "1.35rem 1.5rem",
+        borderRadius: "14px",
+        border: "1px solid #e2e8f0",
+        boxShadow:
+          "0 1px 3px rgba(0,0,0,0.03)",
+        display: "flex",
+        alignItems: "center",
+        gap: "1rem",
+      }}
+    >
+      <div
+        style={{
+          width: "48px",
+          height: "48px",
+          borderRadius: "12px",
+          backgroundColor: "#eff6ff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#2563eb",
+        }}
+      >
+        {icon}
+      </div>
+
+      <div>
+        <div
+          style={{
+            fontSize: "0.78rem",
+            color: "#64748b",
+            fontWeight: 600,
+            textTransform: "uppercase",
+          }}
+        >
+          {title}
+        </div>
+
+        <div
+          style={{
+            marginTop: "3px",
+            fontSize: "1.35rem",
+            fontWeight: 700,
+            color: "#0f172a",
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MessageBox({
+  icon,
+  children,
+  background,
+  border,
+  color,
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+        padding: "0.875rem 1.25rem",
+        backgroundColor: background,
+        color,
+        borderRadius: "10px",
+        marginBottom: "1.5rem",
+        border: `1px solid ${border}`,
+      }}
+    >
+      {icon}
+
+      <span>{children}</span>
+    </div>
+  );
+}
+
+function FormGroup({
+  label,
+  children,
+}) {
+  return (
+    <div>
+      <label
+        style={{
+          display: "block",
+          marginBottom: "0.4rem",
+          fontSize: "0.85rem",
+          fontWeight: 600,
+          color: "#334155",
+        }}
+      >
+        {label}
+      </label>
+
+      {children}
+    </div>
+  );
+}
+
+// ============================================================
+// INPUT STYLE
+// ============================================================
+
+const inputStyle = {
+  width: "100%",
+  padding: "0.75rem 1rem",
+  borderRadius: "8px",
+  border: "1px solid #cbd5e1",
+  backgroundColor: "#ffffff",
+  fontSize: "0.95rem",
+  color: "#1e293b",
+  boxSizing: "border-box",
+};

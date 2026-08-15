@@ -1,9 +1,18 @@
 // src/pages/SGPA.jsx
-import React, { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
+import { formatFirebaseError } from "../utils/errorHandler";
 import {
   Award,
   BookOpen,
@@ -15,6 +24,9 @@ import {
   Sparkles,
   HelpCircle,
   ArrowRight,
+  GraduationCap,
+  Layers,
+  Percent,
 } from "lucide-react";
 
 // ============================================================================
@@ -37,11 +49,11 @@ export function getPerformanceCategory(sgpa) {
   if (isNaN(score) || score === null || score === undefined) {
     return { label: "Not Calculated", color: "#64748b", bg: "#f1f5f9", border: "#cbd5e1" };
   }
-  if (score >= 9.0) return { label: "Excellent", color: "#16a34a", bg: "#f0fdf4", border: "#86efac" };
-  if (score >= 8.0) return { label: "Very Good", color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
-  if (score >= 7.0) return { label: "Good", color: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" };
+  if (score >= 9.0) return { label: "Outstanding Performance", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" };
+  if (score >= 8.0) return { label: "Very Good Standing", color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
+  if (score >= 7.0) return { label: "Good Academic Standing", color: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" };
   if (score >= 6.0) return { label: "Needs Improvement", color: "#d97706", bg: "#fffbeb", border: "#fde68a" };
-  return { label: "Needs Attention", color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" };
+  return { label: "Academic Attention Required", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" };
 }
 
 // ============================================================================
@@ -78,8 +90,7 @@ export default function SGPA() {
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching subjects:", err);
-        setError("Failed to load subject records from Firestore.");
+        setError(formatFirebaseError(err));
         setLoading(false);
       }
     );
@@ -100,46 +111,61 @@ export default function SGPA() {
       await updateDoc(subjectRef, {
         grade: newGrade || null,
         gradePoint: calculatedGradePoint,
+        userId: currentUser.uid,
         updatedAt: serverTimestamp(),
       });
-      setSuccess("Grade updated successfully!");
+      setSuccess("Grade standing updated successfully!");
+      setTimeout(() => setSuccess(""), 3500);
     } catch (err) {
-      console.error("Error updating subject grade:", err);
-      setError("Failed to save grade changes. Please try again.");
+      setError(formatFirebaseError(err));
     } finally {
       setUpdatingSubjectId(null);
     }
   };
 
   // 3. Mathematical Calculations
-  const gradedSubjects = subjects
-    .filter((s) => {
-      const cr = Number(s.credits);
-      return (
-        !isNaN(cr) &&
-        cr > 0 &&
-        s.grade &&
-        s.gradePoint !== null &&
-        s.gradePoint !== undefined &&
-        !isNaN(Number(s.gradePoint))
-      );
-    })
-    .map((s) => ({
-      ...s,
-      creditsNum: Number(s.credits),
-      pointNum: Number(s.gradePoint),
-      creditPoints: Number(s.credits) * Number(s.gradePoint),
-    }));
+  const gradedSubjects = useMemo(() => {
+    return subjects
+      .filter((s) => {
+        const cr = Number(s.credits);
+        return (
+          !isNaN(cr) &&
+          cr > 0 &&
+          s.grade &&
+          s.gradePoint !== null &&
+          s.gradePoint !== undefined &&
+          !isNaN(Number(s.gradePoint))
+        );
+      })
+      .map((s) => ({
+        ...s,
+        creditsNum: Number(s.credits),
+        pointNum: Number(s.gradePoint),
+        creditPoints: Number(s.credits) * Number(s.gradePoint),
+      }));
+  }, [subjects]);
 
-  const totalRegisteredCredits = subjects.reduce((sum, s) => sum + (Number(s.credits) || 0), 0);
-  const totalGradedCredits = gradedSubjects.reduce((sum, s) => sum + s.creditsNum, 0);
-  const totalQualityPoints = gradedSubjects.reduce((sum, s) => sum + s.creditPoints, 0);
+  const totalRegisteredCredits = useMemo(
+    () => subjects.reduce((sum, s) => sum + (Number(s.credits) || 0), 0),
+    [subjects]
+  );
+
+  const totalGradedCredits = useMemo(
+    () => gradedSubjects.reduce((sum, s) => sum + s.creditsNum, 0),
+    [gradedSubjects]
+  );
+
+  const totalQualityPoints = useMemo(
+    () => gradedSubjects.reduce((sum, s) => sum + s.creditPoints, 0),
+    [gradedSubjects]
+  );
+
   const hasGraded = totalGradedCredits > 0;
   const sgpaValue = hasGraded ? (totalQualityPoints / totalGradedCredits).toFixed(2) : "0.00";
   const performance = hasGraded ? getPerformanceCategory(sgpaValue) : null;
 
   // 4. Strengths & Weaknesses Analysis
-  const getSubjectAnalytics = () => {
+  const analytics = useMemo(() => {
     if (gradedSubjects.length === 0) return { hasGraded: false };
     if (gradedSubjects.length === 1) return { hasGraded: true, isSingle: true, single: gradedSubjects[0] };
 
@@ -159,46 +185,103 @@ export default function SGPA() {
       strongest: gradedSubjects.filter((s) => s.pointNum === maxP),
       weakest: gradedSubjects.filter((s) => s.pointNum === minP),
     };
-  };
-
-  const analytics = getSubjectAnalytics();
-
-  if (loading) {
-    return (
-      <div style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem", color: "var(--text-secondary)" }}>
-        Loading subjects & calculating SGPA...
-      </div>
-    );
-  }
+  }, [gradedSubjects]);
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "1.5rem" }}>
-      {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ margin: "0 0 0.5rem 0", color: "var(--text-primary)" }}>
-          SGPA & Grade Calculator
-        </h1>
-        <p style={{ margin: 0, color: "var(--text-secondary)" }}>
-          Assign grades to your enrolled subjects to calculate your credit-weighted Semester GPA.
-        </p>
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+        padding: "2rem 2.5rem",
+        boxSizing: "border-box",
+        minHeight: "100%",
+      }}
+    >
+      {/* Top Banner Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1.25rem",
+          marginBottom: "2rem",
+          paddingBottom: "1.5rem",
+          borderBottom: "1px solid #e2e8f0",
+        }}
+      >
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                backgroundColor: "#eff6ff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#2563eb",
+              }}
+            >
+              <Calculator size={22} />
+            </div>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "1.75rem",
+                fontWeight: "700",
+                color: "#0f172a",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              SGPA & Performance Analyzer
+            </h1>
+          </div>
+          <p style={{ margin: 0, color: "#64748b", fontSize: "0.95rem" }}>
+            Calculate your semester credit-weighted Grade Point Average and inspect academic strengths.
+          </p>
+        </div>
+
+        <Link
+          to="/subjects"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 18px",
+            backgroundColor: "#2563eb",
+            color: "#ffffff",
+            borderRadius: "10px",
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            textDecoration: "none",
+            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
+            transition: "all 0.2s ease",
+          }}
+        >
+          <BookOpen size={16} />
+          Manage Curriculum <ArrowRight size={14} />
+        </Link>
       </div>
 
-      {/* Alerts */}
+      {/* Notifications / Feedback */}
       {error && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.75rem 1rem",
+            gap: "0.75rem",
+            padding: "0.875rem 1.25rem",
             backgroundColor: "#fef2f2",
             color: "#991b1b",
-            borderRadius: "8px",
+            borderRadius: "10px",
             marginBottom: "1.5rem",
             border: "1px solid #fecaca",
+            fontSize: "0.9rem",
           }}
         >
-          <AlertCircle size={18} />
+          <AlertCircle size={20} />
           <span>{error}</span>
         </div>
       )}
@@ -208,65 +291,71 @@ export default function SGPA() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.75rem 1rem",
+            gap: "0.75rem",
+            padding: "0.875rem 1.25rem",
             backgroundColor: "#ecfdf5",
             color: "#065f46",
-            borderRadius: "8px",
+            borderRadius: "10px",
             marginBottom: "1.5rem",
             border: "1px solid #a7f3d0",
+            fontSize: "0.9rem",
           }}
         >
-          <CheckCircle2 size={18} />
+          <CheckCircle2 size={20} />
           <span>{success}</span>
         </div>
       )}
 
-      {/* Hero SGPA Display */}
+      {/* Hero SGPA Display & Primary Breakdown */}
       <div
         style={{
-          backgroundColor: "var(--bg-secondary, #ffffff)",
-          border: `1px solid ${performance ? performance.border : "var(--border-color, #e2e8f0)"}`,
+          backgroundColor: "#ffffff",
+          border: `1.5px solid ${performance ? performance.border : "#e2e8f0"}`,
           borderRadius: "16px",
-          padding: "2rem",
+          padding: "2.5rem 2rem",
           textAlign: "center",
-          marginBottom: "1.75rem",
-          boxShadow: hasGraded ? "0 4px 15px rgba(0, 0, 0, 0.04)" : "none",
+          marginBottom: "2rem",
+          boxShadow: hasGraded
+            ? "0 8px 24px -4px rgba(37, 99, 235, 0.08)"
+            : "0 1px 3px rgba(0, 0, 0, 0.03)",
+          transition: "all 0.25s ease",
         }}
       >
-        <div
+        <span
           style={{
-            fontSize: "13px",
+            fontSize: "0.85rem",
             fontWeight: 700,
-            color: "var(--text-secondary)",
-            marginBottom: "0.5rem",
+            color: "#64748b",
             textTransform: "uppercase",
-            letterSpacing: "0.5px",
+            letterSpacing: "0.08em",
+            display: "block",
+            marginBottom: "0.5rem",
           }}
         >
           Semester Grade Point Average
-        </div>
+        </span>
 
         <div
           style={{
             display: "flex",
             justifyContent: "center",
             alignItems: "baseline",
-            gap: "6px",
-            marginBottom: "0.75rem",
+            gap: "8px",
+            marginBottom: "1rem",
           }}
         >
           <span
             style={{
-              fontSize: "64px",
+              fontSize: "4.25rem",
               fontWeight: 900,
               lineHeight: 1,
-              color: performance ? performance.color : "var(--text-primary)",
+              color: performance ? performance.color : "#0f172a",
+              letterSpacing: "-0.03em",
             }}
           >
-            {hasGraded ? sgpaValue : "—"}
+            {hasGraded ? sgpaValue : "0.00"}
           </span>
-          <span style={{ fontSize: "20px", fontWeight: 600, color: "var(--text-secondary)" }}>
+          <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "#94a3b8" }}>
             / 10.00
           </span>
         </div>
@@ -276,27 +365,27 @@ export default function SGPA() {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "6px",
-              padding: "6px 16px",
+              gap: "8px",
+              padding: "6px 18px",
               borderRadius: "9999px",
               backgroundColor: performance.bg,
               color: performance.color,
               border: `1px solid ${performance.border}`,
-              fontSize: "14px",
+              fontSize: "0.95rem",
               fontWeight: 700,
             }}
           >
-            <Award size={16} />
+            <Award size={18} />
             {performance.label}
           </div>
         ) : (
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--text-secondary)" }}>
-            Select grades for your subjects in the table below to calculate SGPA.
+          <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b" }}>
+            Select grades for your registered courses below to calculate your live SGPA.
           </p>
         )}
       </div>
 
-      {/* Metric Cards Grid */}
+      {/* Analytics Summary Cards */}
       <div
         style={{
           display: "grid",
@@ -305,106 +394,156 @@ export default function SGPA() {
           marginBottom: "2rem",
         }}
       >
+        {/* Total Graded Credits */}
         <div
           style={{
-            backgroundColor: "var(--bg-secondary, #ffffff)",
-            border: "1px solid var(--border-color, #e2e8f0)",
-            borderRadius: "12px",
-            padding: "1.25rem",
+            backgroundColor: "#ffffff",
+            padding: "1.35rem 1.5rem",
+            borderRadius: "14px",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", color: "#2563eb" }}>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "12px",
+              backgroundColor: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#2563eb",
+            }}
+          >
+            <BookOpen size={22} />
+          </div>
+          <div>
+            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
               Graded Credits (Σ C)
             </span>
-            <BookOpen size={20} />
+            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a" }}>
+              {totalGradedCredits} <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#64748b" }}>/ {totalRegisteredCredits}</span>
+            </div>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "0.5rem", color: "var(--text-primary)" }}>
-            {totalGradedCredits}
-          </div>
-          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-            Out of {totalRegisteredCredits} total enrolled credits
-          </span>
         </div>
 
+        {/* Quality Points */}
         <div
           style={{
-            backgroundColor: "var(--bg-secondary, #ffffff)",
-            border: "1px solid var(--border-color, #e2e8f0)",
-            borderRadius: "12px",
-            padding: "1.25rem",
+            backgroundColor: "#ffffff",
+            padding: "1.35rem 1.5rem",
+            borderRadius: "14px",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", color: "#8b5cf6" }}>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "12px",
+              backgroundColor: "#faf5ff",
+              border: "1px solid #e9d5ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#9333ea",
+            }}
+          >
+            <Sparkles size={22} />
+          </div>
+          <div>
+            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
               Quality Points (Σ C × GP)
             </span>
-            <Calculator size={20} />
+            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#9333ea" }}>
+              {totalQualityPoints} <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#64748b" }}>pts</span>
+            </div>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "0.5rem", color: "var(--text-primary)" }}>
-            {totalQualityPoints}
-          </div>
-          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-            Numerator quality score
-          </span>
         </div>
 
+        {/* Graded Courses Ratio */}
         <div
           style={{
-            backgroundColor: "var(--bg-secondary, #ffffff)",
-            border: "1px solid var(--border-color, #e2e8f0)",
-            borderRadius: "12px",
-            padding: "1.25rem",
+            backgroundColor: "#ffffff",
+            padding: "1.35rem 1.5rem",
+            borderRadius: "14px",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", color: "#0891b2" }}>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
-              Graded Subjects
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "12px",
+              backgroundColor: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#16a34a",
+            }}
+          >
+            <GraduationCap size={22} />
+          </div>
+          <div>
+            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
+              Course Status
             </span>
-            <Award size={20} />
+            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#16a34a" }}>
+              {gradedSubjects.length} / {subjects.length}{" "}
+              <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#64748b" }}>Evaluated</span>
+            </div>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "0.5rem", color: "var(--text-primary)" }}>
-            {gradedSubjects.length} / {subjects.length}
-          </div>
-          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-            {subjects.length - gradedSubjects.length} ungraded / in-progress
-          </span>
         </div>
       </div>
 
-      {/* Subject Strengths & Focus Areas */}
+      {/* Strengths & Focus Areas */}
       {analytics.hasGraded && !analytics.isSingle && !analytics.isAllEqual && (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
             gap: "1.25rem",
             marginBottom: "2rem",
           }}
         >
-          {/* Strongest */}
+          {/* Strongest Subjects */}
           <div
             style={{
-              backgroundColor: "var(--bg-secondary, #ffffff)",
+              backgroundColor: "#ffffff",
               border: "1px solid #bbf7d0",
-              borderRadius: "12px",
-              padding: "1.25rem",
-              borderLeft: "4px solid #16a34a",
+              borderRadius: "14px",
+              padding: "1.35rem 1.5rem",
+              borderLeft: "5px solid #16a34a",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontWeight: 700, fontSize: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.85rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#15803d", fontWeight: 700, fontSize: "0.95rem" }}>
                 <TrendingUp size={18} />
                 <span>Strongest Course{analytics.strongest.length > 1 ? "s" : ""}</span>
               </div>
-              <span style={{ fontSize: "12px", fontWeight: 700, backgroundColor: "#dcfce7", color: "#15803d", padding: "2px 8px", borderRadius: "9999px" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, backgroundColor: "#dcfce7", color: "#15803d", padding: "3px 10px", borderRadius: "9999px" }}>
                 {analytics.maxPoint} GP
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {analytics.strongest.map((s) => (
-                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                  <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{s.name}</span>
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem" }}>
+                  <span style={{ fontWeight: 600, color: "#0f172a" }}>{s.name}</span>
                   <span style={{ color: "#16a34a", fontWeight: 700 }}>Grade {s.grade}</span>
                 </div>
               ))}
@@ -414,26 +553,27 @@ export default function SGPA() {
           {/* Focus Areas */}
           <div
             style={{
-              backgroundColor: "var(--bg-secondary, #ffffff)",
+              backgroundColor: "#ffffff",
               border: "1px solid #fecaca",
-              borderRadius: "12px",
-              padding: "1.25rem",
-              borderLeft: "4px solid #dc2626",
+              borderRadius: "14px",
+              padding: "1.35rem 1.5rem",
+              borderLeft: "5px solid #dc2626",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#dc2626", fontWeight: 700, fontSize: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.85rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#b91c1c", fontWeight: 700, fontSize: "0.95rem" }}>
                 <TrendingDown size={18} />
                 <span>Focus Course{analytics.weakest.length > 1 ? "s" : ""}</span>
               </div>
-              <span style={{ fontSize: "12px", fontWeight: 700, backgroundColor: "#fee2e2", color: "#991b1b", padding: "2px 8px", borderRadius: "9999px" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, backgroundColor: "#fee2e2", color: "#991b1b", padding: "3px 10px", borderRadius: "9999px" }}>
                 {analytics.minPoint} GP
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {analytics.weakest.map((s) => (
-                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                  <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{s.name}</span>
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem" }}>
+                  <span style={{ fontWeight: 600, color: "#0f172a" }}>{s.name}</span>
                   <span style={{ color: "#dc2626", fontWeight: 700 }}>Grade {s.grade}</span>
                 </div>
               ))}
@@ -442,50 +582,73 @@ export default function SGPA() {
         </div>
       )}
 
-      {/* Main Subjects & Grade Entry Table */}
+      {/* Main Grade Entry Table */}
       <div
         style={{
-          backgroundColor: "var(--bg-secondary, #ffffff)",
-          border: "1px solid var(--border-color, #e2e8f0)",
-          borderRadius: "12px",
-          padding: "1.5rem",
+          backgroundColor: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "16px",
+          padding: "1.75rem 2rem",
           marginBottom: "2rem",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-          <h3 style={{ margin: 0, fontSize: "16px", color: "var(--text-primary)" }}>
-            Enter Grades for Enrolled Subjects
-          </h3>
-          <Link
-            to="/subjects"
-            style={{
-              fontSize: "13px",
-              color: "var(--accent-color, #2563eb)",
-              textDecoration: "none",
-              fontWeight: 600,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            Manage Enrolled Subjects <ArrowRight size={14} />
-          </Link>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "#0f172a" }}>
+              Enrolled Course Grades
+            </h3>
+            <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+              Update grade standings directly to see real-time GPA calculations.
+            </span>
+          </div>
         </div>
 
-        {subjects.length === 0 ? (
-          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "14px" }}>
-            No subjects found. Please go to <Link to="/subjects" style={{ color: "var(--accent-color, #2563eb)", fontWeight: 600 }}>Subjects</Link> to enroll your courses first.
-          </p>
+        {loading ? (
+          <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>Loading curriculum grades...</div>
+          </div>
+        ) : subjects.length === 0 ? (
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px dashed #cbd5e1",
+              borderRadius: "14px",
+              padding: "3rem 2rem",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ margin: "0 0 1rem 0", color: "#64748b", fontSize: "0.95rem" }}>
+              No subjects registered yet. Enroll courses first to enable grade tracking.
+            </p>
+            <Link
+              to="/subjects"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 16px",
+                backgroundColor: "#2563eb",
+                color: "#ffffff",
+                borderRadius: "8px",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              Enroll Courses Now <ArrowRight size={14} />
+            </Link>
+          </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
               <thead>
-                <tr style={{ borderBottom: "2px solid var(--border-color, #e2e8f0)", color: "var(--text-secondary)", textAlign: "left" }}>
-                  <th style={{ padding: "8px 6px", fontWeight: 600 }}>Subject Name</th>
-                  <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, width: "100px" }}>Credits (C)</th>
-                  <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, width: "190px" }}>Select Grade</th>
-                  <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, width: "100px" }}>Points (GP)</th>
-                  <th style={{ padding: "8px 6px", textAlign: "right", fontWeight: 600, width: "140px" }}>C × GP</th>
+                <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#64748b", textAlign: "left" }}>
+                  <th style={{ padding: "12px 10px", fontWeight: 600 }}>Course / Subject</th>
+                  <th style={{ padding: "12px 10px", textAlign: "center", fontWeight: 600, width: "130px" }}>Credits (C)</th>
+                  <th style={{ padding: "12px 10px", textAlign: "center", fontWeight: 600, width: "230px" }}>Assigned Grade</th>
+                  <th style={{ padding: "12px 10px", textAlign: "center", fontWeight: 600, width: "130px" }}>Grade Points (GP)</th>
+                  <th style={{ padding: "12px 10px", textAlign: "right", fontWeight: 600, width: "160px" }}>Quality Score (C × GP)</th>
                 </tr>
               </thead>
               <tbody>
@@ -501,38 +664,40 @@ export default function SGPA() {
                       key={sub.id}
                       style={{
                         borderBottom: "1px solid #f1f5f9",
-                        backgroundColor: hasGrade ? "transparent" : "#fafafa",
+                        backgroundColor: hasGrade ? "#ffffff" : "#fbfcfd",
+                        transition: "background-color 0.15s ease",
                       }}
                     >
-                      {/* Subject Name */}
-                      <td style={{ padding: "10px 6px", fontWeight: 500, color: "var(--text-primary)" }}>
+                      {/* Course Title */}
+                      <td style={{ padding: "14px 10px", fontWeight: 600, color: "#0f172a" }}>
                         {sub.name}
                       </td>
 
                       {/* Credits */}
-                      <td style={{ padding: "10px 6px", textAlign: "center", color: "#64748b", fontWeight: 600 }}>
+                      <td style={{ padding: "14px 10px", textAlign: "center", color: "#475569", fontWeight: 600 }}>
                         {credits}
                       </td>
 
-                      {/* Direct Grade Selector Dropdown */}
-                      <td style={{ padding: "10px 6px", textAlign: "center" }}>
+                      {/* Grade Selector */}
+                      <td style={{ padding: "14px 10px", textAlign: "center" }}>
                         <select
                           value={sub.grade || ""}
                           disabled={isUpdating}
                           onChange={(e) => handleGradeChange(sub.id, e.target.value)}
                           style={{
                             width: "100%",
-                            padding: "6px 8px",
-                            borderRadius: "6px",
-                            border: `1px solid ${hasGrade ? "#bfdbfe" : "var(--border-color, #cbd5e1)"}`,
+                            padding: "8px 12px",
+                            borderRadius: "8px",
+                            border: `1px solid ${hasGrade ? "#bfdbfe" : "#cbd5e1"}`,
                             backgroundColor: hasGrade ? "#eff6ff" : "#ffffff",
                             color: hasGrade ? "#1d4ed8" : "#334155",
                             fontWeight: 600,
                             cursor: isUpdating ? "not-allowed" : "pointer",
-                            fontSize: "13px",
+                            fontSize: "0.85rem",
+                            outline: "none",
                           }}
                         >
-                          <option value="">-- Not Graded --</option>
+                          <option value="">-- Ungraded --</option>
                           {Object.entries(GRADE_SCALE).map(([code, details]) => (
                             <option key={code} value={code}>
                               {details.label}
@@ -542,12 +707,12 @@ export default function SGPA() {
                       </td>
 
                       {/* Grade Point */}
-                      <td style={{ padding: "10px 6px", textAlign: "center", fontWeight: 600, color: "#334155" }}>
+                      <td style={{ padding: "14px 10px", textAlign: "center", fontWeight: 700, color: hasGrade ? "#0f172a" : "#94a3b8" }}>
                         {hasGrade ? gradePoint : "—"}
                       </td>
 
-                      {/* Weighted Points */}
-                      <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 700, color: hasGrade ? "var(--text-primary)" : "#94a3b8" }}>
+                      {/* Weighted Quality Score */}
+                      <td style={{ padding: "14px 10px", textAlign: "right", fontWeight: 700, color: hasGrade ? "#2563eb" : "#94a3b8" }}>
                         {hasGrade ? `${credits} × ${gradePoint} = ${creditPoints}` : "—"}
                       </td>
                     </tr>
@@ -557,15 +722,15 @@ export default function SGPA() {
 
               {hasGraded && (
                 <tfoot>
-                  <tr style={{ borderTop: "2px solid var(--border-color, #e2e8f0)", fontWeight: 700 }}>
-                    <td style={{ padding: "12px 6px" }}>Summary</td>
-                    <td style={{ padding: "12px 6px", textAlign: "center", color: "#2563eb" }}>
+                  <tr style={{ borderTop: "2px solid #e2e8f0", fontWeight: 700, backgroundColor: "#f8fafc" }}>
+                    <td style={{ padding: "14px 10px", color: "#0f172a" }}>Weighted Total</td>
+                    <td style={{ padding: "14px 10px", textAlign: "center", color: "#2563eb" }}>
                       Σ C = {totalGradedCredits}
                     </td>
-                    <td colSpan="2" style={{ padding: "12px 6px", textAlign: "center" }}>
+                    <td colSpan="2" style={{ padding: "14px 10px", textAlign: "center", color: "#64748b" }}>
                       SGPA = {totalQualityPoints} / {totalGradedCredits}
                     </td>
-                    <td style={{ padding: "12px 6px", textAlign: "right", color: performance ? performance.color : "#16a34a", fontSize: "15px" }}>
+                    <td style={{ padding: "14px 10px", textAlign: "right", color: performance ? performance.color : "#16a34a", fontSize: "1.1rem" }}>
                       = {sgpaValue}
                     </td>
                   </tr>
@@ -576,25 +741,38 @@ export default function SGPA() {
         )}
       </div>
 
-      {/* Formula Explanation Footer */}
+      {/* Formula Reference Footer */}
       <div
         style={{
           backgroundColor: "#f8fafc",
           border: "1px solid #e2e8f0",
-          borderRadius: "10px",
-          padding: "1.25rem",
-          fontSize: "13px",
-          color: "var(--text-secondary)",
+          borderRadius: "12px",
+          padding: "1.35rem 1.5rem",
+          fontSize: "0.85rem",
+          color: "#64748b",
           lineHeight: "1.6",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-primary)", fontWeight: 600, marginBottom: "4px" }}>
-          <HelpCircle size={16} /> Formula Reference
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0f172a", fontWeight: 700, marginBottom: "6px" }}>
+          <HelpCircle size={16} /> Formula Reference & Quality Score Calculation
         </div>
         <div>
-          The Semester Grade Point Average is computed as:
+          The Semester Grade Point Average (SGPA) is computed using credit-weighted summation:
           <br />
-          <code>SGPA = Total Quality Points (Σ Credits × Grade Point) / Total Graded Credits (Σ Credits)</code>
+          <code
+            style={{
+              display: "inline-block",
+              marginTop: "6px",
+              padding: "4px 8px",
+              backgroundColor: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "6px",
+              fontWeight: 600,
+              color: "#2563eb",
+            }}
+          >
+            SGPA = Σ (Subject Credits × Grade Point) / Σ (Graded Subject Credits)
+          </code>
         </div>
       </div>
     </div>

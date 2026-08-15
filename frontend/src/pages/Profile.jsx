@@ -1,9 +1,23 @@
 // src/pages/Profile.jsx
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { User, Mail, GraduationCap, Calendar, Shield, Save, CheckCircle, AlertCircle } from "lucide-react";
+import { formatFirebaseError } from "../utils/errorHandler";
+import {
+  User,
+  Mail,
+  GraduationCap,
+  Calendar,
+  Shield,
+  Save,
+  CheckCircle,
+  AlertCircle,
+  Hash,
+  Sparkles,
+  BookOpen,
+  IdCard,
+} from "lucide-react";
 
 export default function Profile() {
   const { currentUser } = useAuth();
@@ -13,7 +27,7 @@ export default function Profile() {
   const [semester, setSemester] = useState("1");
   const [studentId, setStudentId] = useState("");
   const [role, setRole] = useState("student");
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -37,12 +51,10 @@ export default function Profile() {
           setStudentId(data.studentId || "");
           setRole(data.role || "student");
         } else {
-          // If no doc exists yet, seed basic details
           setName(currentUser.displayName || "");
         }
       } catch (err) {
-        console.error("Error fetching profile:", err);
-        setError("Failed to load profile details.");
+        setError(formatFirebaseError(err));
       } finally {
         setLoading(false);
       }
@@ -51,11 +63,27 @@ export default function Profile() {
     fetchUserProfile();
   }, [currentUser]);
 
-  // 2. Save/Update Profile details
+  // 2. Save/Update Profile details with validation
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
+
+    if (!currentUser) {
+      setError("You must be logged in to update your profile.");
+      return;
+    }
+
+    const cleanName = name.trim();
+    if (!cleanName) {
+      setError("Full name is required.");
+      return;
+    }
+    if (cleanName.length < 2) {
+      setError("Full name must be at least 2 characters.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -64,275 +92,521 @@ export default function Profile() {
       await setDoc(
         userDocRef,
         {
-          name: name.trim(),
+          name: cleanName,
           email: currentUser.email,
           department: department.trim(),
-          semester: semester,
+          semester: String(semester),
           studentId: studentId.trim(),
           role: role,
+          userId: currentUser.uid,
           updatedAt: serverTimestamp(),
         },
-        { merge: true } // Preserves other fields like createdAt
+        { merge: true }
       );
 
-      setMessage("Profile updated successfully!");
+      setMessage("Student profile updated successfully!");
+      setTimeout(() => setMessage(""), 3500);
     } catch (err) {
-      console.error("Error updating profile:", err);
-      setError("Failed to save changes. Please try again.");
+      setError(formatFirebaseError(err));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ padding: "2rem", color: "var(--text-secondary)" }}>
-        <p>Loading profile...</p>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ maxWidth: "700px", margin: "0 auto", padding: "1rem" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ margin: "0 0 0.5rem 0", color: "var(--text-primary)" }}>Student Profile</h1>
-        <p style={{ margin: 0, color: "var(--text-secondary)" }}>
-          Manage your account information and academic details.
-        </p>
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+        padding: "2rem 2.5rem",
+        boxSizing: "border-box",
+        minHeight: "100%",
+      }}
+    >
+      {/* Top Banner Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1.25rem",
+          marginBottom: "2rem",
+          paddingBottom: "1.5rem",
+          borderBottom: "1px solid #e2e8f0",
+        }}
+      >
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                backgroundColor: "#eff6ff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#2563eb",
+              }}
+            >
+              <User size={22} />
+            </div>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "1.75rem",
+                fontWeight: "700",
+                color: "#0f172a",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Student Profile
+            </h1>
+          </div>
+          <p style={{ margin: 0, color: "#64748b", fontSize: "0.95rem" }}>
+            Manage your personal credentials, departmental affiliation, and semester standing.
+          </p>
+        </div>
       </div>
 
-      {/* Success Alert */}
+      {/* Profile Overview Card */}
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "16px",
+          padding: "1.5rem 2rem",
+          marginBottom: "2rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "1.5rem",
+          flexWrap: "wrap",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+        }}
+      >
+        <div
+          style={{
+            width: "64px",
+            height: "64px",
+            borderRadius: "50%",
+            backgroundColor: "#eff6ff",
+            border: "2px solid #bfdbfe",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#2563eb",
+            fontSize: "1.5rem",
+            fontWeight: 800,
+          }}
+        >
+          {name ? name.charAt(0).toUpperCase() : "S"}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 700, color: "#0f172a" }}>
+              {name || "Student Name"}
+            </h2>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                padding: "3px 10px",
+                borderRadius: "9999px",
+                backgroundColor: "#eff6ff",
+                color: "#2563eb",
+                fontWeight: 700,
+                border: "1px solid #bfdbfe",
+                textTransform: "uppercase",
+              }}
+            >
+              {role}
+            </span>
+          </div>
+          <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "0.85rem" }}>
+            {currentUser?.email} • {department || "Department Not Set"} • Semester {semester}
+          </p>
+        </div>
+      </div>
+
+      {/* Alerts */}
       {message && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.75rem 1rem",
+            gap: "0.75rem",
+            padding: "0.875rem 1.25rem",
             backgroundColor: "#ecfdf5",
             color: "#065f46",
-            borderRadius: "8px",
+            borderRadius: "10px",
             marginBottom: "1.5rem",
             border: "1px solid #a7f3d0",
+            fontSize: "0.9rem",
           }}
         >
-          <CheckCircle size={18} />
+          <CheckCircle size={20} />
           <span>{message}</span>
         </div>
       )}
 
-      {/* Error Alert */}
       {error && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.75rem 1rem",
+            gap: "0.75rem",
+            padding: "0.875rem 1.25rem",
             backgroundColor: "#fef2f2",
             color: "#991b1b",
-            borderRadius: "8px",
+            borderRadius: "10px",
             marginBottom: "1.5rem",
             border: "1px solid #fecaca",
+            fontSize: "0.9rem",
           }}
         >
-          <AlertCircle size={18} />
+          <AlertCircle size={20} />
           <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleUpdateProfile}>
-        {/* Account Details Card */}
-        <div
-          style={{
-            backgroundColor: "var(--bg-secondary, #ffffff)",
-            border: "1px solid var(--border-color, #e2e8f0)",
-            borderRadius: "12px",
-            padding: "1.5rem",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <h3 style={{ marginTop: 0, marginBottom: "1.25rem", color: "var(--text-primary)" }}>
-            Account Credentials
-          </h3>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            {/* Email (Read-only) */}
-            <div>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "14px", fontWeight: 500 }}>
-                <Mail size={14} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-                Email Address
-              </label>
-              <input
-                type="email"
-                disabled
-                value={currentUser?.email || ""}
-                style={{
-                  width: "100%",
-                  padding: "0.6rem 0.8rem",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color, #e2e8f0)",
-                  backgroundColor: "#f8fafc",
-                  color: "#64748b",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-
-            {/* Account Role (Read-only) */}
-            <div>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "14px", fontWeight: 500 }}>
-                <Shield size={14} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-                Role
-              </label>
-              <input
-                type="text"
-                disabled
-                value={role.toUpperCase()}
-                style={{
-                  width: "100%",
-                  padding: "0.6rem 0.8rem",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color, #e2e8f0)",
-                  backgroundColor: "#f8fafc",
-                  color: "#64748b",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-          </div>
+      {loading ? (
+        <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+          <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>Loading profile information...</div>
         </div>
-
-        {/* Academic Details Card */}
-        <div
-          style={{
-            backgroundColor: "var(--bg-secondary, #ffffff)",
-            border: "1px solid var(--border-color, #e2e8f0)",
-            borderRadius: "12px",
-            padding: "1.5rem",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <h3 style={{ marginTop: 0, marginBottom: "1.25rem", color: "var(--text-primary)" }}>
-            Academic Information
-          </h3>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {/* Full Name */}
-            <div>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "14px", fontWeight: 500 }}>
-                <User size={14} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-                Full Name
-              </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Jane Doe"
+      ) : (
+        <form onSubmit={handleUpdateProfile}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: "1.5rem",
+              marginBottom: "2rem",
+            }}
+          >
+            {/* Account Credentials Card */}
+            <div
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "16px",
+                padding: "1.75rem 2rem",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+              }}
+            >
+              <h3
                 style={{
-                  width: "100%",
-                  padding: "0.6rem 0.8rem",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color, #cbd5e1)",
-                  boxSizing: "border-box",
+                  margin: "0 0 1.25rem 0",
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
-              />
-            </div>
+              >
+                <Shield size={18} color="#2563eb" />
+                Account Credentials
+              </h3>
 
-            {/* Student ID */}
-            <div>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "14px", fontWeight: 500 }}>
-                Student ID / Roll Number
-              </label>
-              <input
-                type="text"
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                placeholder="e.g., CS-2026-042"
-                style={{
-                  width: "100%",
-                  padding: "0.6rem 0.8rem",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color, #cbd5e1)",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                {/* Email Address (Read-only) */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.4rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      color: "#334155",
+                    }}
+                  >
+                    Email Address (Linked Account)
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <Mail
+                      size={16}
+                      style={{
+                        position: "absolute",
+                        left: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#94a3b8",
+                      }}
+                    />
+                    <input
+                      type="email"
+                      disabled
+                      value={currentUser?.email || ""}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 1rem 0.75rem 2.25rem",
+                        borderRadius: "8px",
+                        border: "1px solid #e2e8f0",
+                        backgroundColor: "#f8fafc",
+                        color: "#64748b",
+                        fontSize: "0.95rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem" }}>
-              {/* Department / Major */}
-              <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "14px", fontWeight: 500 }}>
-                  <GraduationCap size={14} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-                  Department / Major
-                </label>
-                <input
-                  type="text"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="e.g., Computer Science"
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.8rem",
-                    borderRadius: "6px",
-                    border: "1px solid var(--border-color, #cbd5e1)",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              {/* Semester */}
-              <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "14px", fontWeight: 500 }}>
-                  <Calendar size={14} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-                  Semester
-                </label>
-                <select
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.8rem",
-                    borderRadius: "6px",
-                    border: "1px solid var(--border-color, #cbd5e1)",
-                    backgroundColor: "#fff",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                    <option key={sem} value={sem}>
-                      Semester {sem}
-                    </option>
-                  ))}
-                </select>
+                {/* Account Role (Read-only) */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.4rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      color: "#334155",
+                    }}
+                  >
+                    System Role
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <Shield
+                      size={16}
+                      style={{
+                        position: "absolute",
+                        left: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#94a3b8",
+                      }}
+                    />
+                    <input
+                      type="text"
+                      disabled
+                      value={role.toUpperCase()}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 1rem 0.75rem 2.25rem",
+                        borderRadius: "8px",
+                        border: "1px solid #e2e8f0",
+                        backgroundColor: "#f8fafc",
+                        color: "#64748b",
+                        fontSize: "0.95rem",
+                        fontWeight: 600,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={saving}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.75rem 1.5rem",
-            backgroundColor: saving ? "#94a3b8" : "var(--accent-color, #2563eb)",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "8px",
-            fontWeight: 600,
-            cursor: saving ? "not-allowed" : "pointer",
-            transition: "background-color 0.2s ease",
-          }}
-        >
-          <Save size={18} />
-          {saving ? "Saving Changes..." : "Save Profile"}
-        </button>
-      </form>
+            {/* Academic Information Card */}
+            <div
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "16px",
+                padding: "1.75rem 2rem",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 1.25rem 0",
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <GraduationCap size={18} color="#2563eb" />
+                Academic Information
+              </h3>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                {/* Full Name */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.4rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      color: "#334155",
+                    }}
+                  >
+                    Full Name *
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <User
+                      size={16}
+                      style={{
+                        position: "absolute",
+                        left: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#94a3b8",
+                      }}
+                    />
+                    <input
+                      type="text"
+                      disabled={saving}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g., Hithesh"
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 1rem 0.75rem 2.25rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.95rem",
+                        color: "#0f172a",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Student ID */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.4rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      color: "#334155",
+                    }}
+                  >
+                    Student ID / Roll Number
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <IdCard
+                      size={16}
+                      style={{
+                        position: "absolute",
+                        left: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#94a3b8",
+                      }}
+                    />
+                    <input
+                      type="text"
+                      disabled={saving}
+                      value={studentId}
+                      onChange={(e) => setStudentId(e.target.value)}
+                      placeholder="e.g., 1MS25CS042"
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 1rem 0.75rem 2.25rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.95rem",
+                        color: "#0f172a",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "1rem" }}>
+                  {/* Department */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.4rem",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        color: "#334155",
+                      }}
+                    >
+                      Department / Major
+                    </label>
+                    <input
+                      type="text"
+                      disabled={saving}
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                      placeholder="e.g., Computer Science"
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 1rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.95rem",
+                        color: "#0f172a",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  {/* Semester */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.4rem",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        color: "#334155",
+                      }}
+                    >
+                      Semester
+                    </label>
+                    <select
+                      value={semester}
+                      disabled={saving}
+                      onChange={(e) => setSemester(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 1rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        fontSize: "0.95rem",
+                        color: "#0f172a",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                        <option key={sem} value={sem}>
+                          Semester {sem}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Action Toolbar */}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "0.85rem 2rem",
+                borderRadius: "10px",
+                border: "none",
+                backgroundColor: saving ? "#94a3b8" : "#2563eb",
+                color: "#ffffff",
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                cursor: saving ? "not-allowed" : "pointer",
+                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Save size={18} />
+              {saving ? "Saving Profile..." : "Save Profile Details"}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

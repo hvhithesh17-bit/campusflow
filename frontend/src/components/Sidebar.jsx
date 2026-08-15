@@ -1,134 +1,345 @@
-import React from 'react';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  CalendarCheck, 
-  ClipboardList, 
-  CalendarDays, 
-  Calculator, 
+// src/components/Sidebar.jsx
+
+import React from "react";
+
+import {
+  LayoutDashboard,
+  BookOpen,
+  CalendarCheck,
+  ClipboardList,
+  CalendarDays,
+  Calculator,
   User,
   LogOut,
   X,
-  BarChart2 // <-- Added missing import
-} from 'lucide-react';
-import { useNavigate, useLocation } from "react-router-dom";
+  BarChart2,
+  Bot,
+} from "lucide-react";
+
+import {
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+
 import { useAuth } from "../context/AuthContext";
 
-const Sidebar = ({ currentPage, setCurrentPage, isOpen, setIsOpen }) => {
+const Sidebar = ({
+  currentPage,
+  setCurrentPage,
+  isOpen,
+  setIsOpen,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
+
   const { logout } = useAuth();
 
-  // List of navigation items
+  // ============================================================
+  // NAVIGATION ITEMS
+  // ============================================================
+
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'subjects', label: 'Subjects', icon: BookOpen },
-    { id: 'attendance', label: 'Attendance', icon: CalendarCheck },
-    { id: 'assignments', label: 'Assignments', icon: ClipboardList },
-    { id: 'studyPlanner', label: 'Study Planner', icon: CalendarDays },
-    { id: 'sgpa', label: 'SGPA Calculator', icon: Calculator },
-    { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-    { id: 'profile', label: 'Profile', icon: User },
+    {
+      id: "dashboard",
+      path: "/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
+
+    {
+      id: "subjects",
+      path: "/subjects",
+      label: "Subjects",
+      icon: BookOpen,
+    },
+
+    {
+      id: "attendance",
+      path: "/attendance",
+      label: "Attendance",
+      icon: CalendarCheck,
+    },
+
+    {
+      id: "assignments",
+      path: "/assignments",
+      label: "Assignments",
+      icon: ClipboardList,
+    },
+
+    // IMPORTANT:
+    // This must be /study-planner
+    // because StudyPlanner.jsx uses this route.
+    {
+      id: "studyPlanner",
+      path: "/study-planner",
+      label: "Study Planner",
+      icon: CalendarDays,
+    },
+
+    {
+      id: "sgpa",
+      path: "/sgpa",
+      label: "SGPA Calculator",
+      icon: Calculator,
+    },
+
+    {
+      id: "analytics",
+      path: "/analytics",
+      label: "Analytics",
+      icon: BarChart2,
+    },
+
+    {
+      id: "ai-assistant",
+      path: "/ai-assistant",
+      label: "AI Assistant",
+      icon: Bot,
+    },
+
+    {
+      id: "profile",
+      path: "/profile",
+      label: "Profile",
+      icon: User,
+    },
   ];
 
-  const handleNavigation = (id) => {
-    navigate(`/${id}`);
+  // ============================================================
+  // NAVIGATION
+  // ============================================================
+
+  const handleNavigation = (item) => {
+    navigate(item.path);
+
     if (setCurrentPage) {
-      setCurrentPage(id);
+      setCurrentPage(item.id);
     }
+
     if (setIsOpen) {
-      setIsOpen(false); // Close on mobile after click
+      setIsOpen(false);
     }
   };
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
 
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/login');
+
+      navigate("/login");
+
+      if (setCurrentPage) {
+        setCurrentPage("login");
+      }
+
+      if (setIsOpen) {
+        setIsOpen(false);
+      }
     } catch (error) {
       console.error("Logout Error:", error);
     }
   };
 
+  // ============================================================
+  // ACTIVE ROUTE
+  // ============================================================
+
+  const isItemActive = (item) => {
+    // Exact match
+    if (location.pathname === item.path) {
+      return true;
+    }
+
+    // Current page fallback
+    if (
+      currentPage === item.id &&
+      !location.pathname.startsWith("/login")
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // ============================================================
+  // UI
+  // ============================================================
+
   return (
     <>
-      {/* Mobile overlay */}
+      {/* ======================================================
+          MOBILE OVERLAY
+      ====================================================== */}
+
       {isOpen && (
-        <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 40
+        <div
+          onClick={() => {
+            if (setIsOpen) {
+              setIsOpen(false);
+            }
           }}
-          onClick={() => setIsOpen && setIsOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            zIndex: 40,
+          }}
         />
       )}
 
-      {/* Sidebar container */}
-      <aside 
-        className={`sidebar ${isOpen ? 'open' : ''}`}
+      {/* ======================================================
+          SIDEBAR
+      ====================================================== */}
+
+      <aside
+        className={`sidebar ${
+          isOpen ? "open" : ""
+        }`}
         style={{
-          width: 'var(--sidebar-width)',
-          backgroundColor: 'var(--bg-secondary)',
-          borderRight: '1px solid var(--border-color)',
-          height: '100vh',
-          position: 'fixed',
+          width: "var(--sidebar-width)",
+          backgroundColor:
+            "var(--bg-secondary)",
+          borderRight:
+            "1px solid var(--border-color)",
+          height: "100vh",
+          position: "fixed",
           top: 0,
           left: 0,
-          display: 'flex',
-          flexDirection: 'column',
+          display: "flex",
+          flexDirection: "column",
           zIndex: 50,
-          transition: 'transform 0.3s ease'
+          transition:
+            "transform 0.3s ease",
         }}
       >
-        {/* Logo area */}
-        <div style={{
-          padding: '1.5rem',
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <h2 style={{ margin: 0, color: 'var(--accent-color)' }}>CampusFlow</h2>
-          <button 
-            className="btn" 
-            style={{ padding: '0.25rem', display: 'block', background: 'transparent' }}
-            onClick={() => setIsOpen && setIsOpen(false)}
+        {/* ==================================================
+            LOGO / HEADER
+        ================================================== */}
+
+        <div
+          style={{
+            padding: "1.5rem",
+            borderBottom:
+              "1px solid var(--border-color)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "space-between",
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              color: "var(--accent-color)",
+            }}
           >
-            <X size={20} className="close-icon" style={{ display: 'none' }} />
+            CampusFlow
+          </h2>
+
+          <button
+            type="button"
+            className="btn"
+            aria-label="Close sidebar"
+            style={{
+              padding: "0.25rem",
+              display: "block",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+            onClick={() => {
+              if (setIsOpen) {
+                setIsOpen(false);
+              }
+            }}
+          >
+            <X
+              size={20}
+              className="close-icon"
+              style={{
+                display: "none",
+              }}
+            />
           </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav style={{ flex: 1, padding: '1rem 0', overflowY: 'auto' }}>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {/* ==================================================
+            NAVIGATION
+        ================================================== */}
+
+        <nav
+          style={{
+            flex: 1,
+            padding: "1rem 0",
+            overflowY: "auto",
+          }}
+        >
+          <ul
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+            }}
+          >
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === `/${item.id}` || currentPage === item.id;
-              
+
+              const isActive =
+                isItemActive(item);
+
               return (
-                <li key={item.id} style={{ margin: '0.25rem 1rem' }}>
+                <li
+                  key={item.id}
+                  style={{
+                    margin:
+                      "0.25rem 1rem",
+                  }}
+                >
                   <button
-                    onClick={() => handleNavigation(item.id)}
+                    type="button"
+                    onClick={() =>
+                      handleNavigation(item)
+                    }
                     style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      border: 'none',
-                      backgroundColor: isActive ? 'var(--accent-color)' : 'transparent',
-                      color: isActive ? 'white' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      fontWeight: isActive ? 600 : 500,
-                      textAlign: 'left',
-                      transition: 'all 0.2s ease'
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      padding:
+                        "0.75rem 1rem",
+                      borderRadius: "8px",
+                      border: "none",
+
+                      backgroundColor:
+                        isActive
+                          ? "var(--accent-color)"
+                          : "transparent",
+
+                      color: isActive
+                        ? "white"
+                        : "var(--text-secondary)",
+
+                      cursor: "pointer",
+
+                      fontWeight: isActive
+                        ? 600
+                        : 500,
+
+                      textAlign: "left",
+
+                      transition:
+                        "all 0.2s ease",
                     }}
                   >
                     <Icon size={20} />
-                    {item.label}
+
+                    <span>
+                      {item.label}
+                    </span>
                   </button>
                 </li>
               );
@@ -136,35 +347,58 @@ const Sidebar = ({ currentPage, setCurrentPage, isOpen, setIsOpen }) => {
           </ul>
         </nav>
 
-        {/* Logout area at bottom */}
-        <div style={{ padding: '1rem', borderTop: '1px solid var(--border-color)' }}>
-          <button 
+        {/* ==================================================
+            LOGOUT
+        ================================================== */}
+
+        <div
+          style={{
+            padding: "1rem",
+            borderTop:
+              "1px solid var(--border-color)",
+          }}
+        >
+          <button
+            type="button"
             onClick={handleLogout}
             style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: 'var(--danger-color)',
-              cursor: 'pointer',
-              fontWeight: 500
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              padding:
+                "0.75rem 1rem",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor:
+                "transparent",
+              color:
+                "var(--danger-color)",
+              cursor: "pointer",
+              fontWeight: 500,
+              textAlign: "left",
             }}
           >
             <LogOut size={20} />
-            Logout
+
+            <span>Logout</span>
           </button>
         </div>
       </aside>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .close-icon { display: block !important; }
-        }
-      `}</style>
+      {/* ======================================================
+          MOBILE CSS
+      ====================================================== */}
+
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .close-icon {
+              display: block !important;
+            }
+          }
+        `}
+      </style>
     </>
   );
 };

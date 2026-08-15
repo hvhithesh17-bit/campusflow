@@ -24,24 +24,15 @@ import Sgpa from "./pages/Sgpa";
 import StudyPlanner from "./pages/StudyPlanner";
 import Profile from "./pages/Profile";
 import Analytics from "./pages/Analytics";
+import AiAssistant from "./pages/AiAssistant";
 
 // Layout Components
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
-const Placeholder = ({ title }) => (
-  <div>
-    <h1>{title}</h1>
-    <p>This page is under construction.</p>
-  </div>
-);
-
-// Layout wrapper for authenticated pages
 function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
-
-  // Get current active route name for Header and Sidebar highlighting
   const currentPage = location.pathname.replace("/", "") || "dashboard";
 
   return (
@@ -59,7 +50,6 @@ function AppLayout() {
         />
 
         <div className="page-content">
-          {/* Outlet dynamically renders the matched child page */}
           <Outlet />
         </div>
       </main>
@@ -72,11 +62,11 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Public Auth Routes (Accessible without logging in) */}
+          {/* Public Authentication Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Protected Routes (Requires Login, wrapped in Sidebar & Header Layout) */}
+          {/* Protected Application Routes */}
           <Route
             element={
               <ProtectedRoute>
@@ -89,13 +79,19 @@ function App() {
             <Route path="/subjects" element={<Subjects />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/assignments" element={<Assignments />} />
-            <Route path="/studyPlanner" element={<StudyPlanner />} />
+
+            {/* Study Planner Primary and Alias Route Mappings */}
+            <Route path="/study-planner" element={<StudyPlanner />} />
+            <Route path="/planner" element={<StudyPlanner />} />
+            <Route path="/studyplanner" element={<StudyPlanner />} />
+
             <Route path="/sgpa" element={<Sgpa />} />
-            <Route path="/profile" element={<Profile />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/ai-assistant" element={<AiAssistant />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
 
-          {/* Catch-all fallback */}
+          {/* Catch-all Fallback Route */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
