@@ -35,6 +35,7 @@ import {
   LogOut,
   Sparkles,
   Target,
+  TrendingUp,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -55,6 +56,9 @@ import {
   formatStudySubjectDistribution,
   formatAssignmentDistribution,
 } from "../utils/analyticsUtils";
+import {
+  generateAcademicRecommendations,
+} from "../utils/academicRecommendations";
 import AttendanceChart from "../components/dashboard/AttendanceChart";
 import WeeklyStudyChart from "../components/dashboard/WeeklyStudyChart";
 
@@ -66,6 +70,113 @@ const PIE_FALLBACK_COLORS = [
   "#16a34a",
   "#db2777",
 ];
+
+// ------------------------------------------------------
+// IA / SGPA PREDICTION HELPERS
+// These read the same ia1 / ia2 fields saved by Sgpa.jsx.
+// ------------------------------------------------------
+
+const DASHBOARD_GRADE_SCALE = [
+  { min: 90, point: 10 },
+  { min: 80, point: 9 },
+  { min: 70, point: 8 },
+  { min: 60, point: 7 },
+  { min: 55, point: 6 },
+  { min: 50, point: 5 },
+  { min: 40, point: 4 },
+  { min: 0, point: 0 },
+];
+
+function getDashboardGradePoint(marks) {
+  const numericMarks = Number(marks);
+
+  if (!Number.isFinite(numericMarks)) {
+    return 0;
+  }
+
+  const match = DASHBOARD_GRADE_SCALE.find(
+    (item) => numericMarks >= item.min
+  );
+
+  return match?.point ?? 0;
+}
+
+function getDashboardCIE(ia1, ia2) {
+  if (ia1 === "" || ia1 === null || ia1 === undefined) {
+    return null;
+  }
+
+  const first = Number(ia1);
+
+  if (!Number.isFinite(first)) {
+    return null;
+  }
+
+  if (ia2 === "" || ia2 === null || ia2 === undefined) {
+    return first;
+  }
+
+  const second = Number(ia2);
+
+  if (!Number.isFinite(second)) {
+    return first;
+  }
+
+  return (first + second) / 2;
+}
+
+function calculateDashboardPrediction(subjects, seePercentage = 70) {
+  let totalCredits = 0;
+  let totalQualityPoints = 0;
+  let enteredSubjects = 0;
+  let totalIA = 0;
+
+  subjects.forEach((subject) => {
+    const credits = Number(subject.credits) || 0;
+    const ia1 = subject.ia1;
+    const ia2 = subject.ia2;
+
+    if (credits <= 0) {
+      return;
+    }
+
+    if (
+      ia1 === "" ||
+      ia1 === null ||
+      ia1 === undefined
+    ) {
+      return;
+    }
+
+    const cie = getDashboardCIE(ia1, ia2);
+
+    if (cie === null) {
+      return;
+    }
+
+    const seeMarks = (seePercentage / 100) * 50;
+    const estimatedFinalMarks = cie + seeMarks;
+    const gradePoint = getDashboardGradePoint(estimatedFinalMarks);
+
+    totalCredits += credits;
+    totalQualityPoints += credits * gradePoint;
+    enteredSubjects += 1;
+    totalIA += Number(ia1);
+  });
+
+  return {
+    sgpa:
+      totalCredits > 0
+        ? (totalQualityPoints / totalCredits).toFixed(2)
+        : "0.00",
+    averageIA:
+      enteredSubjects > 0
+        ? totalIA / enteredSubjects
+        : null,
+    enteredSubjects,
+    totalSubjects: subjects.length,
+  };
+}
 
 const cardStyle = {
   background: "#ffffff",
@@ -220,6 +331,47 @@ export default function Dashboard() {
       totalGradedCredits: 0,
     }),
     [subjects]
+  );
+
+  // IA data is stored on the same subject documents by Sgpa.jsx.
+  // Because subjects is fed by onSnapshot, Dashboard updates automatically
+  // whenever IA-1 or IA-2 is saved.
+  const iaPrediction = useMemo(
+    () =>
+      safeCalculate(
+        () => calculateDashboardPrediction(subjects, 70),
+        {
+          sgpa: "0.00",
+          averageIA: null,
+          enteredSubjects: 0,
+          totalSubjects: subjects.length,
+        }
+      ),
+    [subjects]
+  );
+
+  const academicRecommendations = useMemo(
+    () =>
+      safeCalculate(
+        () =>
+          generateAcademicRecommendations(
+            subjects.map((subject) => ({
+              ...subject,
+              ia1: subject.ia1 ?? "",
+              ia2: subject.ia2 ?? "",
+            }))
+          ),
+        []
+      ),
+    [subjects]
+  );
+
+  const highPriorityRecommendations = useMemo(
+    () =>
+      academicRecommendations.filter(
+        (item) => item.priority === "HIGH"
+      ),
+    [academicRecommendations]
   );
 
   const attendanceData = useMemo(
@@ -414,6 +566,38 @@ export default function Dashboard() {
           tone="#7c3aed"
         />
         <MetricCard
+          to="/sgpa"
+          icon={<TrendingUp size={21} />}
+          label="Expected SGPA"
+          value={
+            iaPrediction.enteredSubjects > 0
+              ? iaPrediction.sgpa
+              : "—"
+          }
+          detail={
+            iaPrediction.enteredSubjects > 0
+              ? `Based on IA marks • ${iaPrediction.enteredSubjects}/${iaPrediction.totalSubjects} subjects`
+              : "Enter IA marks in SGPA Calculator"
+          }
+          tone="#2563eb"
+        />
+        <MetricCard
+          to="/sgpa"
+          icon={<Target size={21} />}
+          label="IA-1 Average"
+          value={
+            iaPrediction.averageIA !== null
+              ? `${iaPrediction.averageIA.toFixed(1)}/50`
+              : "—"
+          }
+          detail={
+            iaPrediction.enteredSubjects > 0
+              ? `${iaPrediction.enteredSubjects} subject${iaPrediction.enteredSubjects > 1 ? "s" : ""} tracked`
+              : "No IA-1 marks entered yet"
+          }
+          tone="#0891b2"
+        />
+        <MetricCard
           to="/attendance"
           icon={<CalendarCheck size={21} />}
           label="Attendance Rate"
@@ -445,6 +629,166 @@ export default function Dashboard() {
           detail={`${studyData.completedCount} / ${studyData.totalCount} sessions completed`}
           tone="#ea580c"
         />
+      </section>
+
+      {/* IA performance + personalized suggestions */}
+      <section
+        style={{
+          ...cardStyle,
+          padding: "1.5rem",
+          marginBottom: 30,
+        }}
+      >
+        <div style={styles.cardHeader}>
+          <div style={styles.headingWithIcon}>
+            <Sparkles size={19} color="#d97706" />
+            <h3 style={styles.cardTitle}>
+              IA Performance & Suggestions
+            </h3>
+          </div>
+
+          <Link to="/sgpa" style={styles.textLink}>
+            Open SGPA Calculator <ArrowRight size={13} />
+          </Link>
+        </div>
+
+        {academicRecommendations.length === 0 ? (
+          <div style={styles.emptyInline}>
+            <div style={styles.emptyIcon}>
+              <Target size={18} />
+            </div>
+            <div>
+              <strong style={{ color: "#0f172a" }}>
+                Start tracking your IA marks
+              </strong>
+              <p style={{ ...styles.muted, margin: "3px 0 10px" }}>
+                Enter IA-1 marks in SGPA Calculator. Your Dashboard will
+                automatically show your IA average, expected SGPA, risk level,
+                and study recommendations.
+              </p>
+              <Link to="/sgpa" style={styles.smallPrimaryLink}>
+                Enter IA Marks <ArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={styles.iaSummaryGrid}>
+              <div style={styles.iaSummaryCard}>
+                <span style={styles.iaSummaryLabel}>IA Average</span>
+                <strong style={styles.iaSummaryValue}>
+                  {iaPrediction.averageIA !== null
+                    ? `${iaPrediction.averageIA.toFixed(1)}/50`
+                    : "—"}
+                </strong>
+                <span style={styles.iaSummaryHint}>
+                  {iaPrediction.enteredSubjects} of{" "}
+                  {iaPrediction.totalSubjects} subjects
+                </span>
+              </div>
+
+              <div style={styles.iaSummaryCard}>
+                <span style={styles.iaSummaryLabel}>Expected SGPA</span>
+                <strong style={{ ...styles.iaSummaryValue, color: "#2563eb" }}>
+                  {iaPrediction.sgpa}
+                </strong>
+                <span style={styles.iaSummaryHint}>
+                  Assuming 70% SEE performance
+                </span>
+              </div>
+
+              <div style={styles.iaSummaryCard}>
+                <span style={styles.iaSummaryLabel}>High Priority</span>
+                <strong
+                  style={{
+                    ...styles.iaSummaryValue,
+                    color:
+                      highPriorityRecommendations.length > 0
+                        ? "#dc2626"
+                        : "#16a34a",
+                  }}
+                >
+                  {highPriorityRecommendations.length}
+                </strong>
+                <span style={styles.iaSummaryHint}>
+                  Subject{highPriorityRecommendations.length === 1 ? "" : "s"} needing attention
+                </span>
+              </div>
+            </div>
+
+            <div style={styles.recommendationList}>
+              {academicRecommendations
+                .slice()
+                .sort((a, b) => {
+                  const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+                  return (
+                    (order[a.priority] ?? 3) -
+                    (order[b.priority] ?? 3)
+                  );
+                })
+                .slice(0, 4)
+                .map((item) => (
+                  <div
+                    key={item.subjectId}
+                    style={{
+                      ...styles.recommendationCard,
+                      background: item.background || "#f8fafc",
+                      borderColor: `${item.color || "#cbd5e1"}55`,
+                    }}
+                  >
+                    <div style={styles.recommendationTop}>
+                      <div>
+                        <strong style={styles.recommendationSubject}>
+                          {item.subjectName}
+                        </strong>
+                        <div style={styles.recommendationMeta}>
+                          IA-1: {item.ia1}/50
+                          {item.recommendedIA2
+                            ? ` • Target IA-2: ${item.recommendedIA2}/50`
+                            : ""}
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          ...styles.recommendationPill,
+                          color: item.color || "#64748b",
+                        }}
+                      >
+                        {item.risk}
+                      </span>
+                    </div>
+
+                    <p style={styles.recommendationText}>
+                      {item.suggestion}
+                    </p>
+
+                    {item.recommendedStudyHours > 0 && (
+                      <div style={styles.recommendationFooter}>
+                        <Clock size={14} />
+                        Recommended study:{" "}
+                        <strong>
+                          {item.recommendedStudyHours} hrs/week
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+
+            {academicRecommendations.length > 4 && (
+              <Link
+                to="/sgpa"
+                style={{
+                  ...styles.smallPrimaryLink,
+                  marginTop: 12,
+                }}
+              >
+                View all subject suggestions <ArrowRight size={13} />
+              </Link>
+            )}
+          </>
+        )}
       </section>
 
       {/* Visual analytics */}
@@ -865,6 +1209,85 @@ const styles = {
   activityDot: { width: 6, height: 6, borderRadius: "50%", background: "#2563eb" },
   activityText: { color: "#334155", fontSize: "0.78rem", fontWeight: 550 },
   activityDate: { color: "#94a3b8", fontSize: "0.7rem" },
+  iaSummaryGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+    gap: 10,
+    marginBottom: 14,
+  },
+  iaSummaryCard: {
+    padding: "12px 14px",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: 10,
+  },
+  iaSummaryLabel: {
+    display: "block",
+    color: "#64748b",
+    fontSize: "0.7rem",
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: ".04em",
+  },
+  iaSummaryValue: {
+    display: "block",
+    marginTop: 5,
+    color: "#0f172a",
+    fontSize: "1.35rem",
+    fontWeight: 850,
+  },
+  iaSummaryHint: {
+    display: "block",
+    marginTop: 2,
+    color: "#94a3b8",
+    fontSize: "0.7rem",
+  },
+  recommendationList: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: 10,
+  },
+  recommendationCard: {
+    padding: "12px 13px",
+    border: "1px solid",
+    borderRadius: 11,
+  },
+  recommendationTop: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  recommendationSubject: {
+    color: "#0f172a",
+    fontSize: "0.86rem",
+  },
+  recommendationMeta: {
+    marginTop: 3,
+    color: "#64748b",
+    fontSize: "0.7rem",
+  },
+  recommendationPill: {
+    flexShrink: 0,
+    padding: "4px 8px",
+    background: "#ffffff",
+    borderRadius: 999,
+    fontSize: "0.66rem",
+    fontWeight: 900,
+  },
+  recommendationText: {
+    margin: "8px 0 7px",
+    color: "#475569",
+    fontSize: "0.76rem",
+    lineHeight: 1.5,
+  },
+  recommendationFooter: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    color: "#7c3aed",
+    fontSize: "0.7rem",
+  },
   emptyChart: { height: 235, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", color: "#94a3b8", fontSize: "0.8rem", padding: "0 20px" },
   emptyInline: { display: "flex", alignItems: "center", gap: 12, padding: 12, background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: 10 },
   emptyIcon: { width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" },

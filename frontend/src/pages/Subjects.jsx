@@ -18,13 +18,13 @@ import { validateSubject } from "../utils/validation";
 import { formatFirebaseError } from "../utils/errorHandler";
 import {
   BookOpen,
+  Calculator,
   PlusCircle,
   Edit3,
   Trash2,
   X,
   CheckCircle2,
   AlertCircle,
-  Calculator,
   ArrowRight,
   Search,
   Award,
@@ -145,6 +145,9 @@ export default function Subjects() {
           credits: validation.sanitized.credits,
           grade: null,
           gradePoint: null,
+          ia1: null,
+          ia2: null,
+          iaUpdatedAt: null,
           userId: currentUser.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -218,6 +221,7 @@ export default function Subjects() {
       return matchesSearch && matchesCredits;
     });
   }, [subjects, searchTerm, selectedCreditFilter]);
+
 
   return (
     <div
@@ -841,39 +845,6 @@ export default function Subjects() {
                       >
                         {sub.credits} {sub.credits === 1 ? "Credit" : "Credits"}
                       </span>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        fontSize: "0.8rem",
-                        padding: "8px 10px",
-                        backgroundColor: hasGrade ? "#f0fdf4" : "#f8fafc",
-                        border: `1px solid ${hasGrade ? "#bbf7d0" : "#e2e8f0"}`,
-                        borderRadius: "8px",
-                        marginBottom: "1rem",
-                      }}
-                    >
-                      <span style={{ color: "#64748b", fontWeight: 500 }}>Academic Standing:</span>
-                      {hasGrade ? (
-                        <span
-                          style={{
-                            fontWeight: 700,
-                            color: "#15803d",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                          }}
-                        >
-                          <CheckCircle2 size={13} /> {sub.grade} ({sub.gradePoint} GP)
-                        </span>
-                      ) : (
-                        <span style={{ color: "#94a3b8", fontStyle: "italic" }}>
-                          Ungraded (Pending SGPA)
-                        </span>
-                      )}
                     </div>
                   </div>
 

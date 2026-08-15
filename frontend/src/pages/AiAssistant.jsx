@@ -22,7 +22,116 @@ import {
   Brain,
   MessageSquare,
   ShieldCheck,
+  TrendingUp,
+  Target,
 } from "lucide-react";
+
+const IA_GRADE_SCALE = [
+  { min: 90, point: 10 },
+  { min: 80, point: 9 },
+  { min: 70, point: 8 },
+  { min: 60, point: 7 },
+  { min: 55, point: 6 },
+  { min: 50, point: 5 },
+  { min: 40, point: 4 },
+  { min: 0, point: 0 },
+];
+
+function getGradePointFromMarks(marks) {
+  const value = Number(marks);
+  if (!Number.isFinite(value)) return 0;
+
+  return (
+    IA_GRADE_SCALE.find((grade) => value >= grade.min)?.point ?? 0
+  );
+}
+
+function getIa1Value(subject) {
+  const value = Number(subject?.ia1);
+  return Number.isFinite(value) ? value : null;
+}
+
+function getIa2Value(subject) {
+  const value = Number(subject?.ia2);
+  return Number.isFinite(value) ? value : null;
+}
+
+function calculateIaPrediction(subjects) {
+  let credits = 0;
+  let qualityPoints = 0;
+  let tracked = 0;
+  let iaTotal = 0;
+
+  const subjectAnalysis = subjects.map((subject) => {
+    const ia1 = getIa1Value(subject);
+    const ia2 = getIa2Value(subject);
+    const subjectCredits = Number(subject?.credits) || 0;
+
+    if (ia1 === null) {
+      return {
+        ...subject,
+        ia1: null,
+        ia2,
+        risk: "NOT TRACKED",
+        targetIA2: null,
+        suggestedStudyHours: 0,
+      };
+    }
+
+    tracked += 1;
+    iaTotal += ia1;
+
+    // With only IA-1, use IA-1 as the current CIE estimate.
+    // With IA-2, use the average of IA-1 and IA-2.
+    const cie = ia2 === null ? ia1 : (ia1 + ia2) / 2;
+
+    // Keep the same 70% SEE assumption used by Dashboard.
+    const estimatedFinalMarks = cie + 35;
+    const gradePoint = getGradePointFromMarks(estimatedFinalMarks);
+
+    credits += subjectCredits;
+    qualityPoints += subjectCredits * gradePoint;
+
+    let risk = "LOW";
+    let targetIA2 = null;
+    let suggestedStudyHours = 2;
+
+    if (ia1 < 20) {
+      risk = "HIGH";
+      suggestedStudyHours = 6;
+    } else if (ia1 < 30) {
+      risk = "MEDIUM";
+      suggestedStudyHours = 4;
+    }
+
+    if (ia2 === null) {
+      targetIA2 = Math.min(50, Math.max(ia1 + 8, 35));
+    }
+
+    return {
+      ...subject,
+      ia1,
+      ia2,
+      risk,
+      targetIA2,
+      suggestedStudyHours,
+    };
+  });
+
+  return {
+    expectedSGPA:
+      credits > 0
+        ? (qualityPoints / credits).toFixed(2)
+        : "0.00",
+    iaAverage:
+      tracked > 0
+        ? (iaTotal / tracked).toFixed(1)
+        : null,
+    tracked,
+    totalSubjects: subjects.length,
+    subjectAnalysis,
+  };
+}
 
 export default function AiAssistant() {
   const { currentUser } = useAuth();
@@ -163,6 +272,12 @@ export default function AiAssistant() {
     });
   }, [currentUser, subjects, attendance, assignments, studySessions, studyGoals]);
 
+  // Live IA tracking + expected SGPA context.
+  const iaPrediction = useMemo(
+    () => calculateIaPrediction(subjects),
+    [subjects]
+  );
+
   // Compute live context stats
   const contextStats = useMemo(() => {
     const totalAssignments = assignments.filter((a) => a.status !== "Completed").length;
@@ -171,8 +286,11 @@ export default function AiAssistant() {
       coursesCount: subjects.length,
       pendingTasks: totalAssignments,
       lowAttendanceCount: lowAttCount,
+      iaTrackedCount: iaPrediction.tracked,
+      iaAverage: iaPrediction.iaAverage,
+      expectedSGPA: iaPrediction.expectedSGPA,
     };
-  }, [subjects, assignments, attendance]);
+  }, [subjects, assignments, attendance, iaPrediction]);
 
   const quickQuestions = [
     "What should I study today?",
@@ -180,6 +298,7 @@ export default function AiAssistant() {
     "Analyze my attendance health",
     "Review my pending assignments",
     "How can I improve my SGPA?",
+    "Analyze my IA marks and tell me which subject to study first",
     "Create an exam prep roadmap",
   ];
 
@@ -215,7 +334,26 @@ export default function AiAssistant() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: questionText,
-          academicContext,
+          academicContext: {
+            ...academicContext,
+            iaPrediction: {
+              expectedSGPA: iaPrediction.expectedSGPA,
+              iaAverage: iaPrediction.iaAverage,
+              trackedSubjects: iaPrediction.tracked,
+              totalSubjects: iaPrediction.totalSubjects,
+              subjects: iaPrediction.subjectAnalysis.map((subject) => ({
+                subjectId: subject.id,
+                subjectName:
+                  subject.name || subject.subjectName || "Unnamed Subject",
+                credits: Number(subject.credits) || 0,
+                ia1: subject.ia1,
+                ia2: subject.ia2,
+                risk: subject.risk,
+                targetIA2: subject.targetIA2,
+                suggestedStudyHours: subject.suggestedStudyHours,
+              })),
+            },
+          },
         }),
       });
 
@@ -430,6 +568,80 @@ export default function AiAssistant() {
         </div>
       </div>
 
+      {/* IA / SGPA LIVE CONTEXT */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "1.25rem",
+          marginBottom: "1.75rem",
+        }}
+      >
+        <div style={{
+          backgroundColor: "#ffffff",
+          padding: "1.1rem 1.25rem",
+          borderRadius: "14px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.85rem",
+        }}>
+          <div style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "10px",
+            backgroundColor: "#eff6ff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#2563eb",
+          }}>
+            <TrendingUp size={18} />
+          </div>
+          <div>
+            <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
+              Expected SGPA
+            </span>
+            <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#2563eb" }}>
+              {iaPrediction.tracked > 0 ? iaPrediction.expectedSGPA : "—"}
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          backgroundColor: "#ffffff",
+          padding: "1.1rem 1.25rem",
+          borderRadius: "14px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.85rem",
+        }}>
+          <div style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "10px",
+            backgroundColor: "#f0fdf4",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#16a34a",
+          }}>
+            <Target size={18} />
+          </div>
+          <div>
+            <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
+              IA-1 Average
+            </span>
+            <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#16a34a" }}>
+              {iaPrediction.iaAverage ? `${iaPrediction.iaAverage}/50` : "—"}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Database Error Banner */}
       {dbError && (
         <div
@@ -469,6 +681,70 @@ export default function AiAssistant() {
         >
           <AlertCircle size={16} />
           <span>{validationError}</span>
+        </div>
+      )}
+
+      {/* IA SUBJECT PRIORITIES */}
+      {iaPrediction.subjectAnalysis.some(
+        (subject) => subject.risk === "HIGH" || subject.risk === "MEDIUM"
+      ) && (
+        <div
+          style={{
+            marginBottom: "1.25rem",
+            padding: "14px 16px",
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "12px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "0.8rem",
+              fontWeight: 800,
+              color: "#334155",
+              marginBottom: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <Target size={14} color="#dc2626" />
+            IA subjects needing attention
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {iaPrediction.subjectAnalysis
+              .filter(
+                (subject) =>
+                  subject.risk === "HIGH" || subject.risk === "MEDIUM"
+              )
+              .sort((a, b) => {
+                const order = { HIGH: 0, MEDIUM: 1 };
+                return order[a.risk] - order[b.risk];
+              })
+              .slice(0, 5)
+              .map((subject) => (
+                <span
+                  key={subject.id}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: "999px",
+                    background:
+                      subject.risk === "HIGH" ? "#fef2f2" : "#fffbeb",
+                    border:
+                      subject.risk === "HIGH"
+                        ? "1px solid #fecaca"
+                        : "1px solid #fde68a",
+                    color:
+                      subject.risk === "HIGH" ? "#b91c1c" : "#92400e",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {subject.name || subject.subjectName} • IA-1 {subject.ia1}/50
+                </span>
+              ))}
+          </div>
         </div>
       )}
 

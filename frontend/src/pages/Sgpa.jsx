@@ -1,780 +1,2438 @@
-// src/pages/SGPA.jsx
-import React, { useState, useEffect, useMemo } from "react";
+// src/pages/Sgpa.jsx
+
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
   collection,
+  onSnapshot,
   query,
   where,
-  onSnapshot,
-  doc,
   updateDoc,
+  doc,
   serverTimestamp,
 } from "firebase/firestore";
-import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
-import { formatFirebaseError } from "../utils/errorHandler";
+
 import {
-  Award,
-  BookOpen,
   Calculator,
   AlertCircle,
+  Info,
+  Target,
+  Save,
   CheckCircle2,
+  Lightbulb,
   TrendingUp,
-  TrendingDown,
-  Sparkles,
-  HelpCircle,
-  ArrowRight,
-  GraduationCap,
-  Layers,
-  Percent,
+  BookOpen,
+  Clock,
 } from "lucide-react";
 
-// ============================================================================
-// 1. GRADE CONFIGURATION & UTILITY FUNCTIONS
-// ============================================================================
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase";
 
-export const GRADE_SCALE = {
-  "O": { point: 10, label: "O (Outstanding - 10)" },
-  "A+": { point: 9, label: "A+ (Excellent - 9)" },
-  "A": { point: 8, label: "A (Very Good - 8)" },
-  "B+": { point: 7, label: "B+ (Good - 7)" },
-  "B": { point: 6, label: "B (Above Average - 6)" },
-  "C": { point: 5, label: "C (Average - 5)" },
-  "P": { point: 4, label: "P (Pass - 4)" },
-  "F": { point: 0, label: "F (Fail - 0)" },
+import {
+  generateAcademicRecommendations,
+  getHighPrioritySubjects,
+} from "../utils/academicRecommendations";
+
+
+// ======================================================
+// VTU GRADE SCALE
+// ======================================================
+
+const GRADE_SCALE = [
+  {
+    min: 90,
+    grade: "O",
+    point: 10,
+  },
+  {
+    min: 80,
+    grade: "A+",
+    point: 9,
+  },
+  {
+    min: 70,
+    grade: "A",
+    point: 8,
+  },
+  {
+    min: 60,
+    grade: "B+",
+    point: 7,
+  },
+  {
+    min: 55,
+    grade: "B",
+    point: 6,
+  },
+  {
+    min: 50,
+    grade: "C",
+    point: 5,
+  },
+  {
+    min: 40,
+    grade: "P",
+    point: 4,
+  },
+  {
+    min: 0,
+    grade: "F",
+    point: 0,
+  },
+];
+
+
+// ======================================================
+// GRADE CALCULATION
+// ======================================================
+
+const getGradeFromMarks = (marks) => {
+  if (
+    marks === null ||
+    marks === undefined ||
+    marks === "" ||
+    Number.isNaN(Number(marks))
+  ) {
+    return {
+      grade: "-",
+      point: 0,
+    };
+  }
+
+  for (const item of GRADE_SCALE) {
+    if (Number(marks) >= item.min) {
+      return {
+        grade: item.grade,
+        point: item.point,
+      };
+    }
+  }
+
+  return {
+    grade: "F",
+    point: 0,
+  };
 };
 
-export function getPerformanceCategory(sgpa) {
-  const score = parseFloat(sgpa);
-  if (isNaN(score) || score === null || score === undefined) {
-    return { label: "Not Calculated", color: "#64748b", bg: "#f1f5f9", border: "#cbd5e1" };
-  }
-  if (score >= 9.0) return { label: "Outstanding Performance", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" };
-  if (score >= 8.0) return { label: "Very Good Standing", color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
-  if (score >= 7.0) return { label: "Good Academic Standing", color: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" };
-  if (score >= 6.0) return { label: "Needs Improvement", color: "#d97706", bg: "#fffbeb", border: "#fde68a" };
-  return { label: "Academic Attention Required", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" };
-}
 
-// ============================================================================
-// 2. MAIN COMPONENT
-// ============================================================================
+// ======================================================
+// CIE CALCULATION
+// ======================================================
+
+const calculateCIE = (ia1, ia2) => {
+  if (
+    ia1 === "" ||
+    ia1 === null ||
+    ia1 === undefined
+  ) {
+    return null;
+  }
+
+  const first = Number(ia1);
+
+  if (Number.isNaN(first)) {
+    return null;
+  }
+
+  // Only IA-1 entered
+  if (
+    ia2 === "" ||
+    ia2 === null ||
+    ia2 === undefined
+  ) {
+    return first;
+  }
+
+  const second = Number(ia2);
+
+  if (Number.isNaN(second)) {
+    return first;
+  }
+
+  // Temporary CIE indicator
+  return (first + second) / 2;
+};
+
+
+// ======================================================
+// RISK
+// ======================================================
+
+const getRisk = (percentage) => {
+  if (percentage >= 80) {
+    return {
+      level: "LOW",
+      label: "Excellent",
+      color: "#16a34a",
+      background: "#f0fdf4",
+    };
+  }
+
+  if (percentage >= 60) {
+    return {
+      level: "MEDIUM",
+      label: "Needs Attention",
+      color: "#d97706",
+      background: "#fffbeb",
+    };
+  }
+
+  return {
+    level: "HIGH",
+    label: "Needs Improvement",
+    color: "#dc2626",
+    background: "#fef2f2",
+  };
+};
+
+
+// ======================================================
+// MAIN COMPONENT
+// ======================================================
 
 export default function SGPA() {
   const { currentUser } = useAuth();
 
   const [subjects, setSubjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [updatingSubjectId, setUpdatingSubjectId] = useState(null);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
-  // 1. Fetch user's registered subjects from Firestore
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [savingId, setSavingId] =
+    useState(null);
+
+  const [savedId, setSavedId] =
+    useState(null);
+
+  const [iaMarks, setIaMarks] =
+    useState({});
+
+
+  // ====================================================
+  // LOAD SUBJECTS FROM FIREBASE
+  // ====================================================
+
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setSubjects([]);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
+
     const q = query(
       collection(db, "subjects"),
-      where("userId", "==", currentUser.uid)
+      where(
+        "userId",
+        "==",
+        currentUser.uid
+      )
     );
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const fetched = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-        setSubjects(fetched);
-        setLoading(false);
-      },
-      (err) => {
-        setError(formatFirebaseError(err));
-        setLoading(false);
-      }
-    );
+    const unsubscribe =
+      onSnapshot(
+        q,
+        (snapshot) => {
+          const fetchedSubjects =
+            snapshot.docs.map(
+              (docSnap) => ({
+                id: docSnap.id,
+                ...docSnap.data(),
+              })
+            );
 
-    return () => unsubscribe();
+          setSubjects(
+            fetchedSubjects
+          );
+
+
+          // Load saved IA marks
+          const savedMarks = {};
+
+          fetchedSubjects.forEach(
+            (subject) => {
+              savedMarks[
+                subject.id
+              ] = {
+                ia1:
+                  subject.ia1 !==
+                  undefined
+                    ? subject.ia1
+                    : "",
+
+                ia2:
+                  subject.ia2 !==
+                  undefined
+                    ? subject.ia2
+                    : "",
+              };
+            }
+          );
+
+          setIaMarks(
+            savedMarks
+          );
+
+          setLoading(false);
+        },
+        (err) => {
+          console.error(
+            "Firebase subjects error:",
+            err
+          );
+
+          setError(
+            "Unable to load subjects from Firebase."
+          );
+
+          setLoading(false);
+        }
+      );
+
+    return () =>
+      unsubscribe();
   }, [currentUser]);
 
-  // 2. Handle direct inline grade selection & Firestore update
-  const handleGradeChange = async (subjectId, newGrade) => {
-    setError("");
-    setSuccess("");
-    setUpdatingSubjectId(subjectId);
 
-    const calculatedGradePoint = newGrade && GRADE_SCALE[newGrade] ? GRADE_SCALE[newGrade].point : null;
+  // ====================================================
+  // IA INPUT
+  // ====================================================
+
+  const handleIAMarkChange = (
+    subjectId,
+    field,
+    value
+  ) => {
+    if (value === "") {
+      setIaMarks(
+        (previous) => ({
+          ...previous,
+
+          [subjectId]: {
+            ...(previous[
+              subjectId
+            ] || {}),
+
+            [field]: "",
+          },
+        })
+      );
+
+      return;
+    }
+
+    const number =
+      Number(value);
+
+    if (
+      Number.isNaN(number)
+    ) {
+      return;
+    }
+
+    if (
+      number < 0 ||
+      number > 50
+    ) {
+      return;
+    }
+
+    setIaMarks(
+      (previous) => ({
+        ...previous,
+
+        [subjectId]: {
+          ...(previous[
+            subjectId
+          ] || {}),
+
+          [field]: number,
+        },
+      })
+    );
+  };
+
+
+  // ====================================================
+  // SAVE TO FIREBASE
+  // ====================================================
+
+  const saveIAMarks = async (
+    subjectId
+  ) => {
+    if (!currentUser) {
+      setError(
+        "Please login first."
+      );
+
+      return;
+    }
+
+    const marks =
+      iaMarks[subjectId] || {};
+
+    const ia1 =
+      marks.ia1 === "" ||
+      marks.ia1 === undefined
+        ? null
+        : Number(marks.ia1);
+
+    const ia2 =
+      marks.ia2 === "" ||
+      marks.ia2 === undefined
+        ? null
+        : Number(marks.ia2);
+
+
+    // Validation
+
+    if (
+      ia1 !== null &&
+      (ia1 < 0 ||
+        ia1 > 50)
+    ) {
+      setError(
+        "IA-1 must be between 0 and 50."
+      );
+
+      return;
+    }
+
+    if (
+      ia2 !== null &&
+      (ia2 < 0 ||
+        ia2 > 50)
+    ) {
+      setError(
+        "IA-2 must be between 0 and 50."
+      );
+
+      return;
+    }
+
 
     try {
-      const subjectRef = doc(db, "subjects", subjectId);
-      await updateDoc(subjectRef, {
-        grade: newGrade || null,
-        gradePoint: calculatedGradePoint,
-        userId: currentUser.uid,
-        updatedAt: serverTimestamp(),
-      });
-      setSuccess("Grade standing updated successfully!");
-      setTimeout(() => setSuccess(""), 3500);
+      setSavingId(
+        subjectId
+      );
+
+      setError("");
+
+      await updateDoc(
+        doc(
+          db,
+          "subjects",
+          subjectId
+        ),
+        {
+          ia1,
+          ia2,
+
+          iaUpdatedAt:
+            serverTimestamp(),
+        }
+      );
+
+      setSavedId(
+        subjectId
+      );
+
+      setTimeout(() => {
+        setSavedId(null);
+      }, 2000);
     } catch (err) {
-      setError(formatFirebaseError(err));
+      console.error(
+        "Error saving IA:",
+        err
+      );
+
+      setError(
+        "Failed to save IA marks. Check Firebase rules."
+      );
     } finally {
-      setUpdatingSubjectId(null);
+      setSavingId(null);
     }
   };
 
-  // 3. Mathematical Calculations
-  const gradedSubjects = useMemo(() => {
-    return subjects
-      .filter((s) => {
-        const cr = Number(s.credits);
-        return (
-          !isNaN(cr) &&
-          cr > 0 &&
-          s.grade &&
-          s.gradePoint !== null &&
-          s.gradePoint !== undefined &&
-          !isNaN(Number(s.gradePoint))
+
+  // ====================================================
+  // SGPA PREDICTION
+  // ====================================================
+
+  const prediction =
+    useMemo(() => {
+      const calculateScenario =
+        (seePercentage) => {
+          let totalCredits = 0;
+
+          let totalQualityPoints = 0;
+
+          const results = [];
+
+          subjects.forEach(
+            (subject) => {
+              const credits =
+                Number(
+                  subject.credits
+                ) || 0;
+
+              if (
+                credits <= 0
+              ) {
+                return;
+              }
+
+              const marks =
+                iaMarks[
+                  subject.id
+                ] || {};
+
+              const ia1 =
+                marks.ia1;
+
+              const ia2 =
+                marks.ia2;
+
+
+              // IA-1 required
+              if (
+                ia1 === "" ||
+                ia1 === null ||
+                ia1 ===
+                  undefined
+              ) {
+                return;
+              }
+
+
+              const cie =
+                calculateCIE(
+                  ia1,
+                  ia2
+                );
+
+              if (
+                cie === null
+              ) {
+                return;
+              }
+
+
+              /*
+                SEE is out of 100.
+
+                For prediction we assume:
+                40%, 70%, 90%
+
+                converted to 50 marks.
+              */
+
+              const seeMarks =
+                (seePercentage /
+                  100) *
+                50;
+
+
+              const estimatedFinalMarks =
+                cie +
+                seeMarks;
+
+
+              const grade =
+                getGradeFromMarks(
+                  estimatedFinalMarks
+                );
+
+
+              totalCredits +=
+                credits;
+
+              totalQualityPoints +=
+                credits *
+                grade.point;
+
+
+              const iaPercentage =
+                (Number(ia1) /
+                  50) *
+                100;
+
+
+              const risk =
+                getRisk(
+                  iaPercentage
+                );
+
+
+              results.push({
+                id: subject.id,
+
+                name:
+                  subject.name ||
+                  subject.subjectName ||
+                  "Subject",
+
+                credits,
+
+                ia1,
+
+                ia2,
+
+                cie,
+
+                estimatedFinalMarks,
+
+                grade:
+                  grade.grade,
+
+                gradePoint:
+                  grade.point,
+
+                risk,
+              });
+            }
+          );
+
+
+          const sgpa =
+            totalCredits > 0
+              ? totalQualityPoints /
+                totalCredits
+              : 0;
+
+
+          return {
+            sgpa:
+              sgpa.toFixed(2),
+
+            totalCredits,
+
+            results,
+          };
+        };
+
+
+      return {
+        conservative:
+          calculateScenario(40),
+
+        expected:
+          calculateScenario(70),
+
+        best:
+          calculateScenario(90),
+      };
+    }, [
+      subjects,
+      iaMarks,
+    ]);
+
+
+  // ====================================================
+  // ACADEMIC RECOMMENDATIONS
+  // ====================================================
+
+  const academicRecommendations =
+    useMemo(() => {
+      const updatedSubjects =
+        subjects.map(
+          (subject) => ({
+            ...subject,
+
+            ia1:
+              iaMarks[
+                subject.id
+              ]?.ia1 ?? "",
+
+            ia2:
+              iaMarks[
+                subject.id
+              ]?.ia2 ?? "",
+          })
         );
-      })
-      .map((s) => ({
-        ...s,
-        creditsNum: Number(s.credits),
-        pointNum: Number(s.gradePoint),
-        creditPoints: Number(s.credits) * Number(s.gradePoint),
-      }));
-  }, [subjects]);
 
-  const totalRegisteredCredits = useMemo(
-    () => subjects.reduce((sum, s) => sum + (Number(s.credits) || 0), 0),
-    [subjects]
-  );
+      return generateAcademicRecommendations(
+        updatedSubjects
+      );
+    }, [
+      subjects,
+      iaMarks,
+    ]);
 
-  const totalGradedCredits = useMemo(
-    () => gradedSubjects.reduce((sum, s) => sum + s.creditsNum, 0),
-    [gradedSubjects]
-  );
 
-  const totalQualityPoints = useMemo(
-    () => gradedSubjects.reduce((sum, s) => sum + s.creditPoints, 0),
-    [gradedSubjects]
-  );
+  // ====================================================
+  // HIGH PRIORITY SUBJECTS
+  // ====================================================
 
-  const hasGraded = totalGradedCredits > 0;
-  const sgpaValue = hasGraded ? (totalQualityPoints / totalGradedCredits).toFixed(2) : "0.00";
-  const performance = hasGraded ? getPerformanceCategory(sgpaValue) : null;
+  const highPrioritySubjects =
+    useMemo(() => {
+      return getHighPrioritySubjects(
+        academicRecommendations
+      );
+    }, [
+      academicRecommendations,
+    ]);
 
-  // 4. Strengths & Weaknesses Analysis
-  const analytics = useMemo(() => {
-    if (gradedSubjects.length === 0) return { hasGraded: false };
-    if (gradedSubjects.length === 1) return { hasGraded: true, isSingle: true, single: gradedSubjects[0] };
 
-    const points = gradedSubjects.map((s) => s.pointNum);
-    const maxP = Math.max(...points);
-    const minP = Math.min(...points);
+  // ====================================================
+  // OVERALL ANALYSIS
+  // ====================================================
 
-    if (maxP === minP) {
-      return { hasGraded: true, isAllEqual: true, point: maxP };
-    }
+  const analysis =
+    useMemo(() => {
+      const entered =
+        subjects.filter(
+          (subject) => {
+            const mark =
+              iaMarks[
+                subject.id
+              ]?.ia1;
 
-    return {
-      hasGraded: true,
-      isAllEqual: false,
-      maxPoint: maxP,
-      minPoint: minP,
-      strongest: gradedSubjects.filter((s) => s.pointNum === maxP),
-      weakest: gradedSubjects.filter((s) => s.pointNum === minP),
-    };
-  }, [gradedSubjects]);
+            return (
+              mark !==
+                undefined &&
+              mark !== "" &&
+              mark !== null
+            );
+          }
+        );
+
+
+      if (
+        entered.length ===
+        0
+      ) {
+        return {
+          average: null,
+          risk: null,
+          entered: 0,
+          total:
+            subjects.length,
+        };
+      }
+
+
+      const total =
+        entered.reduce(
+          (sum, subject) => {
+            return (
+              sum +
+              Number(
+                iaMarks[
+                  subject.id
+                ].ia1
+              )
+            );
+          },
+          0
+        );
+
+
+      const average =
+        total /
+        entered.length;
+
+
+      return {
+        average,
+
+        risk: getRisk(
+          (average / 50) *
+            100
+        ),
+
+        entered:
+          entered.length,
+
+        total:
+          subjects.length,
+      };
+    }, [
+      subjects,
+      iaMarks,
+    ]);
+
+
+  // ====================================================
+  // LOADING
+  // ====================================================
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight:
+            "100vh",
+
+          display: "flex",
+
+          alignItems:
+            "center",
+
+          justifyContent:
+            "center",
+
+          background:
+            "#f8fafc",
+
+          color:
+            "#475569",
+
+          fontSize:
+            "1rem",
+        }}
+      >
+        Loading your academic data...
+      </div>
+    );
+  }
+
+
+  // ====================================================
+  // UI
+  // ====================================================
 
   return (
     <div
       style={{
-        width: "100%",
-        maxWidth: "100%",
-        padding: "2rem 2.5rem",
-        boxSizing: "border-box",
-        minHeight: "100%",
+        minHeight:
+          "100%",
+
+        padding:
+          "2rem",
+
+        background:
+          "#f8fafc",
       }}
     >
-      {/* Top Banner Header */}
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-          paddingBottom: "1.5rem",
-          borderBottom: "1px solid #e2e8f0",
+          maxWidth:
+            "1400px",
+
+          margin:
+            "0 auto",
         }}
       >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+
+        {/* ==============================================
+            HEADER
+        ============================================== */}
+
+        <div
+          style={{
+            marginBottom:
+              "1.5rem",
+          }}
+        >
+          <div
+            style={{
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              gap: "12px",
+            }}
+          >
             <div
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
-                backgroundColor: "#eff6ff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#2563eb",
+                width: "46px",
+
+                height: "46px",
+
+                borderRadius:
+                  "12px",
+
+                background:
+                  "#dbeafe",
+
+                display:
+                  "flex",
+
+                alignItems:
+                  "center",
+
+                justifyContent:
+                  "center",
               }}
             >
-              <Calculator size={22} />
+              <Calculator
+                size={25}
+                color="#2563eb"
+              />
             </div>
-            <h1
+
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+
+                  fontSize:
+                    "1.8rem",
+
+                  fontWeight:
+                    800,
+
+                  color:
+                    "#0f172a",
+                }}
+              >
+                IA & SGPA
+                Prediction
+              </h1>
+
+              <p
+                style={{
+                  margin:
+                    "4px 0 0",
+
+                  color:
+                    "#64748b",
+
+                  fontSize:
+                    "0.9rem",
+                }}
+              >
+                Track your IA performance
+                and predict your semester
+                SGPA.
+              </p>
+            </div>
+          </div>
+        </div>
+
+
+        {/* ==============================================
+            ERROR
+        ============================================== */}
+
+        {error && (
+          <div
+            style={{
+              padding:
+                "12px 15px",
+
+              marginBottom:
+                "1.2rem",
+
+              borderRadius:
+                "12px",
+
+              background:
+                "#fef2f2",
+
+              border:
+                "1px solid #fecaca",
+
+              color:
+                "#991b1b",
+
+              display:
+                "flex",
+
+              gap: "10px",
+
+              alignItems:
+                "center",
+            }}
+          >
+            <AlertCircle
+              size={19}
+            />
+
+            {error}
+          </div>
+        )}
+
+
+        {/* ==============================================
+            TOP STATS
+        ============================================== */}
+
+        <div
+          style={{
+            display:
+              "grid",
+
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(220px, 1fr))",
+
+            gap: "1rem",
+
+            marginBottom:
+              "1.5rem",
+          }}
+        >
+
+          {/* IA AVERAGE */}
+
+          <StatCard
+            title="IA-1 Average"
+            value={
+              analysis.average !==
+              null
+                ? `${analysis.average.toFixed(
+                    1
+                  )}/50`
+                : "—"
+            }
+            subtitle={
+              analysis.average !==
+              null
+                ? `${analysis.entered} of ${analysis.total} subjects entered`
+                : "Enter IA-1 marks"
+            }
+            icon={
+              <BookOpen
+                size={21}
+              />
+            }
+            background="#ffffff"
+            color="#2563eb"
+          />
+
+
+          {/* STATUS */}
+
+          <StatCard
+            title="Academic Status"
+            value={
+              analysis.risk
+                ? analysis.risk.level
+                : "—"
+            }
+            subtitle={
+              analysis.risk
+                ? analysis.risk.label
+                : "Waiting for marks"
+            }
+            icon={
+              <TrendingUp
+                size={21}
+              />
+            }
+            background={
+              analysis.risk
+                ? analysis.risk.background
+                : "#ffffff"
+            }
+            color={
+              analysis.risk
+                ? analysis.risk.color
+                : "#64748b"
+            }
+          />
+
+
+          {/* EXPECTED SGPA */}
+
+          <StatCard
+            title="Expected SGPA"
+            value={
+              analysis.average !==
+              null
+                ? prediction.expected
+                    .sgpa
+                : "—"
+            }
+            subtitle="Assuming 70% SEE performance"
+            icon={
+              <Target
+                size={21}
+              />
+            }
+            background="#eff6ff"
+            color="#2563eb"
+          />
+
+
+          {/* HIGH RISK */}
+
+          <StatCard
+            title="Subjects Needing Attention"
+            value={
+              highPrioritySubjects.length
+            }
+            subtitle={
+              highPrioritySubjects.length >
+              0
+                ? "Focus on these first"
+                : "No high-risk subjects"
+            }
+            icon={
+              <AlertCircle
+                size={21}
+              />
+            }
+            background={
+              highPrioritySubjects.length >
+              0
+                ? "#fef2f2"
+                : "#f0fdf4"
+            }
+            color={
+              highPrioritySubjects.length >
+              0
+                ? "#dc2626"
+                : "#16a34a"
+            }
+          />
+        </div>
+
+
+        {/* ==============================================
+            PREDICTION
+        ============================================== */}
+
+        {analysis.average !==
+          null && (
+          <div
+            style={{
+              display:
+                "grid",
+
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(220px, 1fr))",
+
+              gap: "1rem",
+
+              marginBottom:
+                "1.5rem",
+            }}
+          >
+            <PredictionCard
+              title="Conservative"
+              sgpa={
+                prediction
+                  .conservative
+                  .sgpa
+              }
+              description="SEE performance around 40%"
+              color="#dc2626"
+              background="#fef2f2"
+            />
+
+            <PredictionCard
+              title="Expected"
+              sgpa={
+                prediction
+                  .expected
+                  .sgpa
+              }
+              description="SEE performance around 70%"
+              color="#2563eb"
+              background="#eff6ff"
+            />
+
+            <PredictionCard
+              title="Best Case"
+              sgpa={
+                prediction
+                  .best
+                  .sgpa
+              }
+              description="SEE performance around 90%"
+              color="#16a34a"
+              background="#f0fdf4"
+            />
+          </div>
+        )}
+
+
+        {/* ==============================================
+            CAMPUSFLOW SUGGESTIONS
+        ============================================== */}
+
+        {academicRecommendations.length >
+          0 && (
+          <div
+            style={{
+              background:
+                "#ffffff",
+
+              border:
+                "1px solid #e2e8f0",
+
+              borderRadius:
+                "16px",
+
+              padding:
+                "1.4rem",
+
+              marginBottom:
+                "1.5rem",
+            }}
+          >
+
+            <div
+              style={{
+                display:
+                  "flex",
+
+                alignItems:
+                  "center",
+
+                gap: "10px",
+
+                marginBottom:
+                  "1rem",
+              }}
+            >
+              <div
+                style={{
+                  width:
+                    "38px",
+
+                  height:
+                    "38px",
+
+                  borderRadius:
+                    "10px",
+
+                  background:
+                    "#fef3c7",
+
+                  display:
+                    "flex",
+
+                  alignItems:
+                    "center",
+
+                  justifyContent:
+                    "center",
+                }}
+              >
+                <Lightbulb
+                  size={20}
+                  color="#d97706"
+                />
+              </div>
+
+              <div>
+                <h2
+                  style={{
+                    margin: 0,
+
+                    fontSize:
+                      "1.1rem",
+
+                    color:
+                      "#0f172a",
+                  }}
+                >
+                  CampusFlow
+                  Suggestions
+                </h2>
+
+                <p
+                  style={{
+                    margin:
+                      "3px 0 0",
+
+                    color:
+                      "#64748b",
+
+                    fontSize:
+                      "0.82rem",
+                  }}
+                >
+                  Personalized from
+                  your IA performance.
+                </p>
+              </div>
+            </div>
+
+
+            <div
+              style={{
+                display:
+                  "grid",
+
+                gap: "12px",
+              }}
+            >
+              {academicRecommendations.map(
+                (item) => (
+                  <RecommendationCard
+                    key={
+                      item.subjectId
+                    }
+                    item={item}
+                  />
+                )
+              )}
+            </div>
+          </div>
+        )}
+
+
+        {/* ==============================================
+            INFO
+        ============================================== */}
+
+        <div
+          style={{
+            padding:
+              "1rem",
+
+            background:
+              "#fffbeb",
+
+            border:
+              "1px solid #fde68a",
+
+            borderRadius:
+              "12px",
+
+            marginBottom:
+              "1.5rem",
+
+            display:
+              "flex",
+
+            gap: "10px",
+
+            color:
+              "#92400e",
+
+            fontSize:
+              "0.85rem",
+          }}
+        >
+          <Info
+            size={19}
+          />
+
+          <div>
+            <strong>
+              Prediction only:
+            </strong>{" "}
+            The SGPA shown here is an
+            estimate based on your IA
+            marks and an assumed SEE
+            performance. It is not your
+            official VTU SGPA.
+          </div>
+        </div>
+
+
+        {/* ==============================================
+            SUBJECT TABLE
+        ============================================== */}
+
+        <div
+          style={{
+            background:
+              "#ffffff",
+
+            border:
+              "1px solid #e2e8f0",
+
+            borderRadius:
+              "16px",
+
+            overflow:
+              "hidden",
+          }}
+        >
+
+          <div
+            style={{
+              padding:
+                "1.4rem",
+
+              borderBottom:
+                "1px solid #e2e8f0",
+            }}
+          >
+            <h2
               style={{
                 margin: 0,
-                fontSize: "1.75rem",
-                fontWeight: "700",
-                color: "#0f172a",
-                letterSpacing: "-0.02em",
+
+                fontSize:
+                  "1.1rem",
+
+                color:
+                  "#0f172a",
               }}
             >
-              SGPA & Performance Analyzer
-            </h1>
-          </div>
-          <p style={{ margin: 0, color: "#64748b", fontSize: "0.95rem" }}>
-            Calculate your semester credit-weighted Grade Point Average and inspect academic strengths.
-          </p>
-        </div>
+              Internal Assessment
+            </h2>
 
-        <Link
-          to="/subjects"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 18px",
-            backgroundColor: "#2563eb",
-            color: "#ffffff",
-            borderRadius: "10px",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            textDecoration: "none",
-            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
-            transition: "all 0.2s ease",
-          }}
-        >
-          <BookOpen size={16} />
-          Manage Curriculum <ArrowRight size={14} />
-        </Link>
-      </div>
-
-      {/* Notifications / Feedback */}
-      {error && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            padding: "0.875rem 1.25rem",
-            backgroundColor: "#fef2f2",
-            color: "#991b1b",
-            borderRadius: "10px",
-            marginBottom: "1.5rem",
-            border: "1px solid #fecaca",
-            fontSize: "0.9rem",
-          }}
-        >
-          <AlertCircle size={20} />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {success && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            padding: "0.875rem 1.25rem",
-            backgroundColor: "#ecfdf5",
-            color: "#065f46",
-            borderRadius: "10px",
-            marginBottom: "1.5rem",
-            border: "1px solid #a7f3d0",
-            fontSize: "0.9rem",
-          }}
-        >
-          <CheckCircle2 size={20} />
-          <span>{success}</span>
-        </div>
-      )}
-
-      {/* Hero SGPA Display & Primary Breakdown */}
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          border: `1.5px solid ${performance ? performance.border : "#e2e8f0"}`,
-          borderRadius: "16px",
-          padding: "2.5rem 2rem",
-          textAlign: "center",
-          marginBottom: "2rem",
-          boxShadow: hasGraded
-            ? "0 8px 24px -4px rgba(37, 99, 235, 0.08)"
-            : "0 1px 3px rgba(0, 0, 0, 0.03)",
-          transition: "all 0.25s ease",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "0.85rem",
-            fontWeight: 700,
-            color: "#64748b",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            display: "block",
-            marginBottom: "0.5rem",
-          }}
-        >
-          Semester Grade Point Average
-        </span>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "baseline",
-            gap: "8px",
-            marginBottom: "1rem",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "4.25rem",
-              fontWeight: 900,
-              lineHeight: 1,
-              color: performance ? performance.color : "#0f172a",
-              letterSpacing: "-0.03em",
-            }}
-          >
-            {hasGraded ? sgpaValue : "0.00"}
-          </span>
-          <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "#94a3b8" }}>
-            / 10.00
-          </span>
-        </div>
-
-        {performance ? (
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "6px 18px",
-              borderRadius: "9999px",
-              backgroundColor: performance.bg,
-              color: performance.color,
-              border: `1px solid ${performance.border}`,
-              fontSize: "0.95rem",
-              fontWeight: 700,
-            }}
-          >
-            <Award size={18} />
-            {performance.label}
-          </div>
-        ) : (
-          <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b" }}>
-            Select grades for your registered courses below to calculate your live SGPA.
-          </p>
-        )}
-      </div>
-
-      {/* Analytics Summary Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-        }}
-      >
-        {/* Total Graded Credits */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            padding: "1.35rem 1.5rem",
-            borderRadius: "14px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}
-        >
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              backgroundColor: "#eff6ff",
-              border: "1px solid #bfdbfe",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#2563eb",
-            }}
-          >
-            <BookOpen size={22} />
-          </div>
-          <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-              Graded Credits (Σ C)
-            </span>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a" }}>
-              {totalGradedCredits} <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#64748b" }}>/ {totalRegisteredCredits}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quality Points */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            padding: "1.35rem 1.5rem",
-            borderRadius: "14px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}
-        >
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              backgroundColor: "#faf5ff",
-              border: "1px solid #e9d5ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#9333ea",
-            }}
-          >
-            <Sparkles size={22} />
-          </div>
-          <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-              Quality Points (Σ C × GP)
-            </span>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#9333ea" }}>
-              {totalQualityPoints} <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#64748b" }}>pts</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Graded Courses Ratio */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            padding: "1.35rem 1.5rem",
-            borderRadius: "14px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}
-        >
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              backgroundColor: "#f0fdf4",
-              border: "1px solid #bbf7d0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#16a34a",
-            }}
-          >
-            <GraduationCap size={22} />
-          </div>
-          <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-              Course Status
-            </span>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#16a34a" }}>
-              {gradedSubjects.length} / {subjects.length}{" "}
-              <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#64748b" }}>Evaluated</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Strengths & Focus Areas */}
-      {analytics.hasGraded && !analytics.isSingle && !analytics.isAllEqual && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "1.25rem",
-            marginBottom: "2rem",
-          }}
-        >
-          {/* Strongest Subjects */}
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #bbf7d0",
-              borderRadius: "14px",
-              padding: "1.35rem 1.5rem",
-              borderLeft: "5px solid #16a34a",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.85rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#15803d", fontWeight: 700, fontSize: "0.95rem" }}>
-                <TrendingUp size={18} />
-                <span>Strongest Course{analytics.strongest.length > 1 ? "s" : ""}</span>
-              </div>
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, backgroundColor: "#dcfce7", color: "#15803d", padding: "3px 10px", borderRadius: "9999px" }}>
-                {analytics.maxPoint} GP
-              </span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              {analytics.strongest.map((s) => (
-                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem" }}>
-                  <span style={{ fontWeight: 600, color: "#0f172a" }}>{s.name}</span>
-                  <span style={{ color: "#16a34a", fontWeight: 700 }}>Grade {s.grade}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Focus Areas */}
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #fecaca",
-              borderRadius: "14px",
-              padding: "1.35rem 1.5rem",
-              borderLeft: "5px solid #dc2626",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.85rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#b91c1c", fontWeight: 700, fontSize: "0.95rem" }}>
-                <TrendingDown size={18} />
-                <span>Focus Course{analytics.weakest.length > 1 ? "s" : ""}</span>
-              </div>
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, backgroundColor: "#fee2e2", color: "#991b1b", padding: "3px 10px", borderRadius: "9999px" }}>
-                {analytics.minPoint} GP
-              </span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              {analytics.weakest.map((s) => (
-                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem" }}>
-                  <span style={{ fontWeight: 600, color: "#0f172a" }}>{s.name}</span>
-                  <span style={{ color: "#dc2626", fontWeight: 700 }}>Grade {s.grade}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Grade Entry Table */}
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: "16px",
-          padding: "1.75rem 2rem",
-          marginBottom: "2rem",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "#0f172a" }}>
-              Enrolled Course Grades
-            </h3>
-            <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-              Update grade standings directly to see real-time GPA calculations.
-            </span>
-          </div>
-        </div>
-
-        {loading ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
-            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>Loading curriculum grades...</div>
-          </div>
-        ) : subjects.length === 0 ? (
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px dashed #cbd5e1",
-              borderRadius: "14px",
-              padding: "3rem 2rem",
-              textAlign: "center",
-            }}
-          >
-            <p style={{ margin: "0 0 1rem 0", color: "#64748b", fontSize: "0.95rem" }}>
-              No subjects registered yet. Enroll courses first to enable grade tracking.
-            </p>
-            <Link
-              to="/subjects"
+            <p
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 16px",
-                backgroundColor: "#2563eb",
-                color: "#ffffff",
-                borderRadius: "8px",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                textDecoration: "none",
+                margin:
+                  "5px 0 0",
+
+                color:
+                  "#64748b",
+
+                fontSize:
+                  "0.84rem",
               }}
             >
-              Enroll Courses Now <ArrowRight size={14} />
-            </Link>
+              Enter IA-1 now. Add IA-2
+              later to improve the
+              prediction.
+            </p>
           </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+
+
+          <div
+            style={{
+              overflowX:
+                "auto",
+            }}
+          >
+            <table
+              style={{
+                width:
+                  "100%",
+
+                minWidth:
+                  "1050px",
+
+                borderCollapse:
+                  "collapse",
+              }}
+            >
+
               <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#64748b", textAlign: "left" }}>
-                  <th style={{ padding: "12px 10px", fontWeight: 600 }}>Course / Subject</th>
-                  <th style={{ padding: "12px 10px", textAlign: "center", fontWeight: 600, width: "130px" }}>Credits (C)</th>
-                  <th style={{ padding: "12px 10px", textAlign: "center", fontWeight: 600, width: "230px" }}>Assigned Grade</th>
-                  <th style={{ padding: "12px 10px", textAlign: "center", fontWeight: 600, width: "130px" }}>Grade Points (GP)</th>
-                  <th style={{ padding: "12px 10px", textAlign: "right", fontWeight: 600, width: "160px" }}>Quality Score (C × GP)</th>
+                <tr
+                  style={{
+                    background:
+                      "#f8fafc",
+                  }}
+                >
+                  <th style={headerStyle}>
+                    Subject
+                  </th>
+
+                  <th style={headerStyle}>
+                    Credits
+                  </th>
+
+                  <th style={headerStyle}>
+                    IA-1 / 50
+                  </th>
+
+                  <th style={headerStyle}>
+                    IA-2 / 50
+                  </th>
+
+                  <th style={headerStyle}>
+                    CIE
+                  </th>
+
+                  <th style={headerStyle}>
+                    Expected Grade
+                  </th>
+
+                  <th style={headerStyle}>
+                    Risk
+                  </th>
+
+                  <th style={headerStyle}>
+                    Save
+                  </th>
                 </tr>
               </thead>
+
+
               <tbody>
-                {subjects.map((sub) => {
-                  const hasGrade = sub.grade && sub.gradePoint !== null && sub.gradePoint !== undefined;
-                  const credits = Number(sub.credits) || 0;
-                  const gradePoint = hasGrade ? Number(sub.gradePoint) : 0;
-                  const creditPoints = credits * gradePoint;
-                  const isUpdating = updatingSubjectId === sub.id;
+                {subjects.map(
+                  (subject) => {
+                    const marks =
+                      iaMarks[
+                        subject.id
+                      ] || {};
 
-                  return (
-                    <tr
-                      key={sub.id}
-                      style={{
-                        borderBottom: "1px solid #f1f5f9",
-                        backgroundColor: hasGrade ? "#ffffff" : "#fbfcfd",
-                        transition: "background-color 0.15s ease",
-                      }}
-                    >
-                      {/* Course Title */}
-                      <td style={{ padding: "14px 10px", fontWeight: 600, color: "#0f172a" }}>
-                        {sub.name}
-                      </td>
 
-                      {/* Credits */}
-                      <td style={{ padding: "14px 10px", textAlign: "center", color: "#475569", fontWeight: 600 }}>
-                        {credits}
-                      </td>
+                    const cie =
+                      calculateCIE(
+                        marks.ia1,
+                        marks.ia2
+                      );
 
-                      {/* Grade Selector */}
-                      <td style={{ padding: "14px 10px", textAlign: "center" }}>
-                        <select
-                          value={sub.grade || ""}
-                          disabled={isUpdating}
-                          onChange={(e) => handleGradeChange(sub.id, e.target.value)}
+
+                    const expected =
+                      prediction.expected.results.find(
+                        (item) =>
+                          item.id ===
+                          subject.id
+                      );
+
+
+                    const risk =
+                      marks.ia1 !==
+                        "" &&
+                      marks.ia1 !==
+                        undefined &&
+                      marks.ia1 !==
+                        null
+                        ? getRisk(
+                            (Number(
+                              marks.ia1
+                            ) /
+                              50) *
+                              100
+                          )
+                        : null;
+
+
+                    return (
+                      <tr
+                        key={
+                          subject.id
+                        }
+                        style={{
+                          borderTop:
+                            "1px solid #f1f5f9",
+                        }}
+                      >
+
+                        {/* SUBJECT */}
+
+                        <td
+                          style={
+                            cellStyle
+                          }
+                        >
+                          <strong>
+                            {subject.name ||
+                              subject.subjectName ||
+                              "Subject"}
+                          </strong>
+                        </td>
+
+
+                        {/* CREDITS */}
+
+                        <td
                           style={{
-                            width: "100%",
-                            padding: "8px 12px",
-                            borderRadius: "8px",
-                            border: `1px solid ${hasGrade ? "#bfdbfe" : "#cbd5e1"}`,
-                            backgroundColor: hasGrade ? "#eff6ff" : "#ffffff",
-                            color: hasGrade ? "#1d4ed8" : "#334155",
-                            fontWeight: 600,
-                            cursor: isUpdating ? "not-allowed" : "pointer",
-                            fontSize: "0.85rem",
-                            outline: "none",
+                            ...cellStyle,
+
+                            textAlign:
+                              "center",
                           }}
                         >
-                          <option value="">-- Ungraded --</option>
-                          {Object.entries(GRADE_SCALE).map(([code, details]) => (
-                            <option key={code} value={code}>
-                              {details.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+                          {subject.credits ??
+                            0}
+                        </td>
 
-                      {/* Grade Point */}
-                      <td style={{ padding: "14px 10px", textAlign: "center", fontWeight: 700, color: hasGrade ? "#0f172a" : "#94a3b8" }}>
-                        {hasGrade ? gradePoint : "—"}
-                      </td>
 
-                      {/* Weighted Quality Score */}
-                      <td style={{ padding: "14px 10px", textAlign: "right", fontWeight: 700, color: hasGrade ? "#2563eb" : "#94a3b8" }}>
-                        {hasGrade ? `${credits} × ${gradePoint} = ${creditPoints}` : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        {/* IA1 */}
+
+                        <td
+                          style={{
+                            ...cellStyle,
+
+                            textAlign:
+                              "center",
+                          }}
+                        >
+                          <input
+                            type="number"
+                            min="0"
+                            max="50"
+                            value={
+                              marks.ia1 ??
+                              ""
+                            }
+                            placeholder="0-50"
+                            onChange={(
+                              e
+                            ) =>
+                              handleIAMarkChange(
+                                subject.id,
+                                "ia1",
+                                e.target.value
+                              )
+                            }
+                            style={
+                              inputStyle
+                            }
+                          />
+                        </td>
+
+
+                        {/* IA2 */}
+
+                        <td
+                          style={{
+                            ...cellStyle,
+
+                            textAlign:
+                              "center",
+                          }}
+                        >
+                          <input
+                            type="number"
+                            min="0"
+                            max="50"
+                            value={
+                              marks.ia2 ??
+                              ""
+                            }
+                            placeholder="Later"
+                            onChange={(
+                              e
+                            ) =>
+                              handleIAMarkChange(
+                                subject.id,
+                                "ia2",
+                                e.target.value
+                              )
+                            }
+                            style={
+                              inputStyle
+                            }
+                          />
+                        </td>
+
+
+                        {/* CIE */}
+
+                        <td
+                          style={{
+                            ...cellStyle,
+
+                            textAlign:
+                              "center",
+
+                            fontWeight:
+                              800,
+
+                            color:
+                              "#2563eb",
+                          }}
+                        >
+                          {cie !==
+                          null
+                            ? `${cie.toFixed(
+                                1
+                              )}/50`
+                            : "—"}
+                        </td>
+
+
+                        {/* GRADE */}
+
+                        <td
+                          style={{
+                            ...cellStyle,
+
+                            textAlign:
+                              "center",
+                          }}
+                        >
+                          {expected ? (
+                            <span
+                              style={{
+                                padding:
+                                  "5px 10px",
+
+                                borderRadius:
+                                  "999px",
+
+                                background:
+                                  "#eff6ff",
+
+                                color:
+                                  "#1d4ed8",
+
+                                fontWeight:
+                                  800,
+
+                                fontSize:
+                                  "0.78rem",
+                              }}
+                            >
+                              {
+                                expected.grade
+                              }
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+
+
+                        {/* RISK */}
+
+                        <td
+                          style={{
+                            ...cellStyle,
+
+                            textAlign:
+                              "center",
+                          }}
+                        >
+                          {risk ? (
+                            <span
+                              style={{
+                                padding:
+                                  "5px 9px",
+
+                                borderRadius:
+                                  "999px",
+
+                                background:
+                                  risk.background,
+
+                                color:
+                                  risk.color,
+
+                                fontWeight:
+                                  800,
+
+                                fontSize:
+                                  "0.72rem",
+                              }}
+                            >
+                              {
+                                risk.level
+                              }
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+
+
+                        {/* SAVE */}
+
+                        <td
+                          style={{
+                            ...cellStyle,
+
+                            textAlign:
+                              "center",
+                          }}
+                        >
+                          <button
+                            onClick={() =>
+                              saveIAMarks(
+                                subject.id
+                              )
+                            }
+                            disabled={
+                              savingId ===
+                              subject.id
+                            }
+                            style={{
+                              border:
+                                "none",
+
+                              background:
+                                savedId ===
+                                subject.id
+                                  ? "#16a34a"
+                                  : "#2563eb",
+
+                              color:
+                                "#ffffff",
+
+                              padding:
+                                "8px 12px",
+
+                              borderRadius:
+                                "8px",
+
+                              cursor:
+                                "pointer",
+
+                              display:
+                                "inline-flex",
+
+                              alignItems:
+                                "center",
+
+                              gap: "6px",
+
+                              fontWeight:
+                                700,
+                            }}
+                          >
+                            {savingId ===
+                            subject.id ? (
+                              "Saving..."
+                            ) : savedId ===
+                              subject.id ? (
+                              <>
+                                <CheckCircle2
+                                  size={
+                                    15
+                                  }
+                                />
+
+                                Saved
+                              </>
+                            ) : (
+                              <>
+                                <Save
+                                  size={
+                                    15
+                                  }
+                                />
+
+                                Save
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  }
+                )}
               </tbody>
-
-              {hasGraded && (
-                <tfoot>
-                  <tr style={{ borderTop: "2px solid #e2e8f0", fontWeight: 700, backgroundColor: "#f8fafc" }}>
-                    <td style={{ padding: "14px 10px", color: "#0f172a" }}>Weighted Total</td>
-                    <td style={{ padding: "14px 10px", textAlign: "center", color: "#2563eb" }}>
-                      Σ C = {totalGradedCredits}
-                    </td>
-                    <td colSpan="2" style={{ padding: "14px 10px", textAlign: "center", color: "#64748b" }}>
-                      SGPA = {totalQualityPoints} / {totalGradedCredits}
-                    </td>
-                    <td style={{ padding: "14px 10px", textAlign: "right", color: performance ? performance.color : "#16a34a", fontSize: "1.1rem" }}>
-                      = {sgpaValue}
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
             </table>
           </div>
-        )}
-      </div>
-
-      {/* Formula Reference Footer */}
-      <div
-        style={{
-          backgroundColor: "#f8fafc",
-          border: "1px solid #e2e8f0",
-          borderRadius: "12px",
-          padding: "1.35rem 1.5rem",
-          fontSize: "0.85rem",
-          color: "#64748b",
-          lineHeight: "1.6",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0f172a", fontWeight: 700, marginBottom: "6px" }}>
-          <HelpCircle size={16} /> Formula Reference & Quality Score Calculation
         </div>
-        <div>
-          The Semester Grade Point Average (SGPA) is computed using credit-weighted summation:
-          <br />
-          <code
+
+
+        {/* ==============================================
+            HOW IT WORKS
+        ============================================== */}
+
+        <div
+          style={{
+            marginTop:
+              "1.5rem",
+
+            background:
+              "#ffffff",
+
+            border:
+              "1px solid #e2e8f0",
+
+            borderRadius:
+              "16px",
+
+            padding:
+              "1.4rem",
+          }}
+        >
+          <div
             style={{
-              display: "inline-block",
-              marginTop: "6px",
-              padding: "4px 8px",
-              backgroundColor: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: "6px",
-              fontWeight: 600,
-              color: "#2563eb",
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              gap: "10px",
+
+              marginBottom:
+                "10px",
             }}
           >
-            SGPA = Σ (Subject Credits × Grade Point) / Σ (Graded Subject Credits)
-          </code>
+            <Target
+              size={20}
+              color="#2563eb"
+            />
+
+            <strong
+              style={{
+                color:
+                  "#0f172a",
+              }}
+            >
+              How CampusFlow works
+            </strong>
+          </div>
+
+          <div
+            style={{
+              display:
+                "grid",
+
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(180px, 1fr))",
+
+              gap: "10px",
+            }}
+          >
+
+            <ProcessStep
+              number="1"
+              title="Enter IA-1"
+              text="Track your current performance."
+            />
+
+            <ProcessStep
+              number="2"
+              title="Get Analysis"
+              text="CampusFlow identifies weak subjects."
+            />
+
+            <ProcessStep
+              number="3"
+              title="Get Target"
+              text="You receive an IA-2 target."
+            />
+
+            <ProcessStep
+              number="4"
+              title="Improve"
+              text="Use the Study Planner to prepare."
+            />
+          </div>
         </div>
+
       </div>
     </div>
   );
 }
+
+
+// ======================================================
+// STAT CARD
+// ======================================================
+
+function StatCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  background,
+  color,
+}) {
+  return (
+    <div
+      style={{
+        background,
+
+        border:
+          "1px solid #e2e8f0",
+
+        borderRadius:
+          "16px",
+
+        padding:
+          "1.25rem",
+      }}
+    >
+      <div
+        style={{
+          display:
+            "flex",
+
+          alignItems:
+            "center",
+
+          justifyContent:
+            "space-between",
+        }}
+      >
+        <span
+          style={{
+            color:
+              "#64748b",
+
+            fontSize:
+              "0.76rem",
+
+            fontWeight:
+              800,
+          }}
+        >
+          {title}
+        </span>
+
+        <span
+          style={{
+            color,
+
+            display:
+              "flex",
+          }}
+        >
+          {icon}
+        </span>
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "1.9rem",
+
+          fontWeight:
+            900,
+
+          color,
+
+          marginTop:
+            "8px",
+        }}
+      >
+        {value}
+      </div>
+
+      <div
+        style={{
+          color:
+            "#64748b",
+
+          fontSize:
+            "0.78rem",
+
+          marginTop:
+            "3px",
+        }}
+      >
+        {subtitle}
+      </div>
+    </div>
+  );
+}
+
+
+// ======================================================
+// PREDICTION CARD
+// ======================================================
+
+function PredictionCard({
+  title,
+  sgpa,
+  description,
+  color,
+  background,
+}) {
+  return (
+    <div
+      style={{
+        background,
+
+        border:
+          `1px solid ${color}33`,
+
+        borderRadius:
+          "16px",
+
+        padding:
+          "1.4rem",
+
+        borderTop:
+          `5px solid ${color}`,
+      }}
+    >
+      <div
+        style={{
+          color,
+
+          fontWeight:
+            800,
+
+          fontSize:
+            "0.85rem",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "2.5rem",
+
+          fontWeight:
+            900,
+
+          color,
+
+          marginTop:
+            "5px",
+        }}
+      >
+        {sgpa}
+      </div>
+
+      <p
+        style={{
+          margin:
+            "4px 0 0",
+
+          color:
+            "#64748b",
+
+          fontSize:
+            "0.8rem",
+        }}
+      >
+        {description}
+      </p>
+    </div>
+  );
+}
+
+
+// ======================================================
+// RECOMMENDATION CARD
+// ======================================================
+
+function RecommendationCard({
+  item,
+}) {
+  return (
+    <div
+      style={{
+        padding:
+          "1rem",
+
+        borderRadius:
+          "12px",
+
+        background:
+          item.background,
+
+        border:
+          `1px solid ${item.color}33`,
+      }}
+    >
+      <div
+        style={{
+          display:
+            "flex",
+
+          alignItems:
+            "center",
+
+          justifyContent:
+            "space-between",
+
+          gap: "10px",
+        }}
+      >
+
+        <strong
+          style={{
+            color:
+              "#0f172a",
+
+            fontSize:
+              "0.95rem",
+          }}
+        >
+          {item.subjectName}
+        </strong>
+
+        <span
+          style={{
+            padding:
+              "4px 9px",
+
+            borderRadius:
+              "999px",
+
+            background:
+              "#ffffff",
+
+            color:
+              item.color,
+
+            fontSize:
+              "0.7rem",
+
+            fontWeight:
+              900,
+          }}
+        >
+          {item.risk}
+        </span>
+      </div>
+
+
+      <p
+        style={{
+          margin:
+            "8px 0",
+
+          color:
+            "#475569",
+
+          fontSize:
+            "0.85rem",
+
+          lineHeight:
+            1.5,
+        }}
+      >
+        {item.suggestion}
+      </p>
+
+
+      <div
+        style={{
+          display:
+            "flex",
+
+          flexWrap:
+            "wrap",
+
+          gap: "8px",
+
+          marginTop:
+            "8px",
+        }}
+      >
+
+        {item.recommendedIA2 && (
+          <div
+            style={{
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              gap: "5px",
+
+              padding:
+                "6px 9px",
+
+              background:
+                "#ffffff",
+
+              borderRadius:
+                "8px",
+
+              color:
+                "#2563eb",
+
+              fontSize:
+                "0.75rem",
+
+              fontWeight:
+                800,
+            }}
+          >
+            <Target
+              size={14}
+            />
+
+            IA-2 Target:
+            {" "}
+            {item.recommendedIA2}/50
+          </div>
+        )}
+
+
+        {item.recommendedStudyHours >
+          0 && (
+          <div
+            style={{
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              gap: "5px",
+
+              padding:
+                "6px 9px",
+
+              background:
+                "#ffffff",
+
+              borderRadius:
+                "8px",
+
+              color:
+                "#7c3aed",
+
+              fontSize:
+                "0.75rem",
+
+              fontWeight:
+                800,
+            }}
+          >
+            <Clock
+              size={14}
+            />
+
+            Study:
+            {" "}
+            {item.recommendedStudyHours}
+            {" "}
+            hrs/week
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// ======================================================
+// PROCESS STEP
+// ======================================================
+
+function ProcessStep({
+  number,
+  title,
+  text,
+}) {
+  return (
+    <div
+      style={{
+        padding:
+          "12px",
+
+        background:
+          "#f8fafc",
+
+        borderRadius:
+          "10px",
+      }}
+    >
+      <div
+        style={{
+          width:
+            "28px",
+
+          height:
+            "28px",
+
+          borderRadius:
+            "50%",
+
+          background:
+            "#dbeafe",
+
+          color:
+            "#2563eb",
+
+          display:
+            "flex",
+
+          alignItems:
+            "center",
+
+          justifyContent:
+            "center",
+
+          fontWeight:
+            900,
+
+          fontSize:
+            "0.8rem",
+
+          marginBottom:
+            "7px",
+        }}
+      >
+        {number}
+      </div>
+
+      <strong
+        style={{
+          display:
+            "block",
+
+          color:
+            "#0f172a",
+
+          fontSize:
+            "0.85rem",
+        }}
+      >
+        {title}
+      </strong>
+
+      <span
+        style={{
+          display:
+            "block",
+
+          marginTop:
+            "3px",
+
+          color:
+            "#64748b",
+
+          fontSize:
+            "0.75rem",
+
+          lineHeight:
+            1.4,
+        }}
+      >
+        {text}
+      </span>
+    </div>
+  );
+}
+
+
+// ======================================================
+// STYLES
+// ======================================================
+
+const headerStyle = {
+  padding:
+    "13px 12px",
+
+  textAlign:
+    "center",
+
+  color:
+    "#64748b",
+
+  fontSize:
+    "0.75rem",
+
+  fontWeight:
+    800,
+};
+
+
+const cellStyle = {
+  padding:
+    "14px 12px",
+
+  color:
+    "#334155",
+
+  fontSize:
+    "0.88rem",
+};
+
+
+const inputStyle = {
+  width:
+    "82px",
+
+  padding:
+    "9px",
+
+  borderRadius:
+    "8px",
+
+  border:
+    "1px solid #cbd5e1",
+
+  textAlign:
+    "center",
+
+  outline:
+    "none",
+
+  fontSize:
+    "0.88rem",
+
+  background:
+    "#ffffff",
+};

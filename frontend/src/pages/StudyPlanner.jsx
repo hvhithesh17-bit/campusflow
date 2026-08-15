@@ -28,6 +28,7 @@ import {
   Sparkles,
   Timer,
   Trash2,
+  Target,
 } from "lucide-react";
 
 import { db } from "../firebase";
@@ -85,6 +86,9 @@ export default function StudyPlanner() {
 
   const [priority, setPriority] = useState("Medium");
 
+  // Optional data received from SGPA Calculator.
+  const [sgpaPrefill, setSgpaPrefill] = useState(null);
+
   const [submitting, setSubmitting] = useState(false);
 
   // ============================================================
@@ -114,14 +118,19 @@ export default function StudyPlanner() {
 
   // ============================================================
   // PREFILL FORM FROM OTHER PAGE
+  // Supports SGPA -> Study Planner connection.
   // ============================================================
 
   useEffect(() => {
     const prefill = location.state?.prefill;
 
     if (!prefill) {
+      setSgpaPrefill(null);
       return;
     }
+
+    // Keep the SGPA recommendation available for the banner.
+    setSgpaPrefill(prefill.source === "sgpa" ? prefill : null);
 
     if (prefill.subjectId) {
       setSubjectId(prefill.subjectId);
@@ -153,6 +162,14 @@ export default function StudyPlanner() {
         });
       }
     }, 100);
+
+    // Clear route state after reading it so browser refresh/back
+    // does not repeatedly prefill the form.
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.href
+    );
   }, [location.state]);
 
   // ============================================================
@@ -489,6 +506,22 @@ export default function StudyPlanner() {
 
         priority: priority || "Medium",
 
+        // Optional academic context from SGPA Calculator.
+        source: sgpaPrefill?.source || "study-planner",
+
+        targetIA2:
+          sgpaPrefill?.targetIA2 != null
+            ? Number(sgpaPrefill.targetIA2)
+            : null,
+
+        ia1Marks:
+          sgpaPrefill?.ia1 != null
+            ? Number(sgpaPrefill.ia1)
+            : null,
+
+        academicRisk:
+          sgpaPrefill?.risk || null,
+
         status: "Scheduled",
 
         createdAt: serverTimestamp(),
@@ -505,6 +538,7 @@ export default function StudyPlanner() {
       setDuration(60);
       setPriority("Medium");
       setStartTime("18:00");
+      setSgpaPrefill(null);
     } catch (err) {
       console.error(
         "Error creating study session:",
@@ -957,6 +991,70 @@ export default function StudyPlanner() {
           loading={loading}
         />
       </div>
+
+      {/* ======================================================
+          SGPA -> STUDY PLANNER CONNECTION
+      ====================================================== */}
+
+      {sgpaPrefill && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "12px",
+            padding: "14px 16px",
+            marginBottom: "1rem",
+            background: "#eff6ff",
+            border: "1px solid #bfdbfe",
+            borderRadius: "12px",
+            color: "#1e40af",
+          }}
+        >
+          <div
+            style={{
+              width: "34px",
+              height: "34px",
+              flexShrink: 0,
+              borderRadius: "9px",
+              background: "#dbeafe",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Target size={18} color="#2563eb" />
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <strong
+              style={{
+                display: "block",
+                fontSize: "0.86rem",
+                color: "#1e3a8a",
+              }}
+            >
+              SGPA recommendation added
+            </strong>
+
+            <p
+              style={{
+                margin: "3px 0 0",
+                fontSize: "0.76rem",
+                color: "#475569",
+                lineHeight: 1.45,
+              }}
+            >
+              {sgpaPrefill.subjectName || "This subject"} needs attention.
+              {sgpaPrefill.targetIA2
+                ? ` Target IA-2: ${sgpaPrefill.targetIA2}/50.`
+                : ""}
+              {sgpaPrefill.studyHours
+                ? ` Recommended study: ${sgpaPrefill.studyHours} hrs/week.`
+                : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ======================================================
           CREATE FORM
@@ -1447,6 +1545,23 @@ export default function StudyPlanner() {
                         min)
                       </span>
                     </div>
+
+                    {session.source === "sgpa" &&
+                      session.targetIA2 != null && (
+                        <div
+                          style={{
+                            marginTop: "6px",
+                            color: "#2563eb",
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          🎯 IA-2 target: {session.targetIA2}/50
+                          {session.ia1Marks != null
+                            ? ` • Current IA-1: ${session.ia1Marks}/50`
+                            : ""}
+                        </div>
+                      )}
                   </div>
 
                   {/* ACTIONS */}

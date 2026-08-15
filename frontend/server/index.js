@@ -1,4 +1,5 @@
 // server/index.js
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -6,10 +7,17 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
+// ============================================================
+// PATH SETUP
+// ============================================================
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Automatic .env loader: checks local server/.env and root .env
+// ============================================================
+// LOAD .ENV
+// ============================================================
+
 const localEnv = path.resolve(__dirname, ".env");
 const rootEnv = path.resolve(__dirname, "..", ".env");
 
@@ -21,140 +29,491 @@ if (fs.existsSync(localEnv)) {
   dotenv.config();
 }
 
+// ============================================================
+// STARTUP INFORMATION
+// ============================================================
+
 console.log("------------------------------------------");
-console.log("Gemini API Key Loaded:", Boolean(process.env.GEMINI_API_KEY));
+console.log("CampusFlow AI Backend");
 console.log("------------------------------------------");
+
+console.log(
+  "Gemini API Key Loaded:",
+  Boolean(process.env.GEMINI_API_KEY)
+);
+
+console.log("------------------------------------------");
+
+// ============================================================
+// EXPRESS APP
+// ============================================================
 
 const app = express();
+
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors({ origin: ["http://localhost:5173", "http://127.0.0.1:5173", "*"] }));
-app.use(express.json());
+// ============================================================
+// CORS
+// ============================================================
 
-// Comprehensive System Instructions for Academic Advising
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Allow configured origins.
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow during development/deployment testing.
+      return callback(null, true);
+    },
+  })
+);
+
+app.use(
+  express.json({
+    limit: "1mb",
+  })
+);
+
+// ============================================================
+// SYSTEM INSTRUCTION
+// ============================================================
+
 const SYSTEM_INSTRUCTION = `
-You are the CampusFlow Academic AI Assistant, an intelligent, objective, and empathetic advisor for university students.
+You are the CampusFlow Academic AI Assistant.
 
-YOUR CORE DIRECTIVES:
-1. STRICT DATA GROUNDING: Rely exclusively on the provided 'academicContext' JSON payload. Never invent course names, grades, credits, attendance percentages, or assignments.
-2. MISSING DATA HANDLING: If attendance, grade point, or assignments for a course are null, 0 total classes, or marked unavailable, explicitly state: "Data unavailable" — NEVER assume 0% or failure.
-3. CONCISE & ACTIONABLE: Avoid generic filler or empty motivation (e.g., avoid "Just study harder!"). Use exact numbers, subject names, and specific minute durations.
-4. READ-ONLY SCOPE: You cannot modify Firebase data, change grades, delete tasks, or schedule database items directly.
+You are an intelligent, objective, practical and empathetic
+academic advisor for university students.
 
-CORE QUERY HANDLING INSTRUCTIONS:
-- "What should I study today?": Identify the #1 subject from 'topStudyRecommendations'. State the subject name, recommended study duration (e.g. 90 min), and bullet points citing exact reasons (attendance, grade point, overdue tasks).
-- "Which subject needs the most attention?" / "Which subject is my weakest?": Identify the subject with the highest priority score, lowest attendance percentage (<75%), or lowest grade point (<=6). Explain the exact metrics.
-- "Which subject is my strongest?": Identify the subject with the highest grade point (e.g. 9-10) or highest attendance (>=85%) with 0 overdue tasks.
-- "Analyze my attendance": Report overall attendance percentage. Detail any subjects strictly below 75% first, then 75%-85%, and give concrete recovery advice (e.g., "Attend the next 3 consecutive lectures to cross 75%").
-- "Analyze my SGPA" / "How can I improve my SGPA?": Report current SGPA and status. Highlight high-credit subjects (credits >= 3) with low grade points where improvement creates the highest mathematical multiplier on total SGPA. Never guarantee a score.
-- "Analyze my assignments": Summarize Total, Completed, Pending, and Overdue tasks. Call out subjects with multiple pending or overdue deadlines.
-- "How much should I study this week?": Compare 'weeklyCompletedMinutes' against 'weeklyGoalMinutes'. Recommend a daily breakdown to hit the remaining target.
-- "Create a study strategy": Provide a realistic, 2-day or 3-day schedule allocating specific subjects and recommended durations (90m for high, 60m for medium, 30m for low). Mention: "Use the [Add to Study Planner] button on your Study Planner page to schedule these sessions."
+CORE RULES:
+
+1. STRICT DATA GROUNDING
+
+Use only the information provided inside academicContext.
+
+Never invent:
+
+- subject names
+- grades
+- credits
+- attendance
+- assignments
+- IA marks
+- SGPA
+- study progress
+
+2. MISSING DATA
+
+If information is unavailable, explicitly say:
+
+"Data unavailable"
+
+Never assume missing information is zero.
+
+3. IA MARKS
+
+When IA data is available:
+
+- IA-1 is out of 50.
+- IA-2 is out of 50.
+- Identify weak subjects.
+- Suggest realistic IA-2 targets.
+- Explain why a subject needs attention.
+- Prioritize high-credit subjects when appropriate.
+
+4. SGPA
+
+Use the provided SGPA information.
+
+Never guarantee a future SGPA.
+
+Use phrases such as:
+
+- expected SGPA
+- estimated SGPA
+- possible improvement
+
+5. STUDY RECOMMENDATIONS
+
+Give specific recommendations.
+
+HIGH priority:
+90 minutes
+
+MEDIUM priority:
+60 minutes
+
+LOW priority:
+30 minutes
+
+6. ATTENDANCE
+
+Prioritize subjects below 75%.
+
+Give practical recovery advice.
+
+7. ASSIGNMENTS
+
+Mention:
+
+- pending assignments
+- overdue assignments
+- subjects with multiple pending tasks
+
+8. STUDY PLANNER
+
+When recommending study sessions, tell the student:
+
+"Use the Add to Study Planner option to schedule this session."
+
+9. READ ONLY
+
+You cannot directly:
+
+- modify Firebase
+- change grades
+- delete assignments
+- create study sessions
+
+You can only recommend actions.
+
+10. RESPONSE STYLE
+
+Keep responses:
+
+- concise
+- practical
+- metric-driven
+- easy to understand
+
+Use the student's actual subject names and numbers.
 `;
 
-// Helper: Call Gemini API using available models from your key's verified list
-async function callGemini(prompt, systemInstruction = "") {
+// ============================================================
+// GEMINI API FUNCTION
+// ============================================================
+
+async function callGemini(prompt) {
   const apiKey = process.env.GEMINI_API_KEY;
+
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured on the server.");
+    throw new Error(
+      "GEMINI_API_KEY is not configured on the server."
+    );
   }
 
-  // Active candidate models in fallback order
-  const candidateModels = [
+  // ==========================================================
+  // GEMINI MODEL FALLBACK
+  // ==========================================================
+
+  const models = [
+    "gemini-3.6-flash",
     "gemini-3.5-flash",
-    "gemini-3.7-flash",
-    "gemini-3-flash-preview",
-    "gemini-flash-latest",
-    "gemini-pro-latest"
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash",
   ];
 
   let lastError = null;
 
-  for (const model of candidateModels) {
+  for (const model of models) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      console.log(
+        `Trying Gemini model: ${model}`
+      );
+
+      const url =
+        `https://generativelanguage.googleapis.com/v1beta/models/` +
+        `${model}:generateContent`;
 
       const payload = {
+        systemInstruction: {
+          parts: [
+            {
+              text: SYSTEM_INSTRUCTION,
+            },
+          ],
+        },
+
         contents: [
           {
             role: "user",
-            parts: [{ text: prompt }],
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
           },
         ],
+
         generationConfig: {
-          temperature: 0.3,
+          maxOutputTokens: 1000,
         },
       };
 
-      if (systemInstruction) {
-        payload.systemInstruction = {
-          parts: [{ text: systemInstruction }],
-        };
-      }
-
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-        return data.candidates[0].content.parts[0].text;
+      // ======================================================
+      // SUCCESS
+      // ======================================================
+
+      if (response.ok) {
+        const reply =
+          data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (reply) {
+          console.log(
+            `Gemini response received from ${model}`
+          );
+
+          return reply;
+        }
+
+        lastError =
+          "Gemini returned an empty response.";
+
+        continue;
       }
 
-      if (data.error) {
-        lastError = data.error.message;
+      // ======================================================
+      // ERROR
+      // ======================================================
+
+      const errorMessage =
+        data?.error?.message ||
+        `Gemini returned HTTP ${response.status}`;
+
+      console.log(
+        `${model} failed: ${response.status}`
+      );
+
+      console.log(
+        errorMessage
+      );
+
+      lastError = errorMessage;
+
+      // ======================================================
+      // TEMPORARY ERRORS
+      // Try another model.
+      // ======================================================
+
+      if (
+        response.status === 429 ||
+        response.status === 500 ||
+        response.status === 502 ||
+        response.status === 503 ||
+        response.status === 504
+      ) {
+        console.log(
+          `Trying next Gemini model...`
+        );
+
+        continue;
       }
-    } catch (err) {
-      lastError = err.message;
+
+      // ======================================================
+      // OTHER ERRORS
+      // ======================================================
+
+      break;
+    } catch (error) {
+      console.log(
+        `Request failed for ${model}:`,
+        error.message
+      );
+
+      lastError = error.message;
     }
   }
 
-  throw new Error(lastError || "All Gemini model endpoints failed.");
+  throw new Error(
+    lastError ||
+      "All Gemini models are currently unavailable."
+  );
 }
 
-// -------------------------------------------------------------
-// ROUTES
-// -------------------------------------------------------------
+// ============================================================
+// ROOT HEALTH CHECK
+// ============================================================
 
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
-    message: "CampusFlow AI Backend is running 🚀",
+
+    service:
+      "CampusFlow AI Backend",
+
+    status:
+      "running",
+
+    timestamp:
+      new Date().toISOString(),
   });
 });
 
+// ============================================================
+// API HEALTH CHECK
+// ============================================================
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+
+    message:
+      "CampusFlow AI API is healthy",
+
+    geminiConfigured:
+      Boolean(
+        process.env.GEMINI_API_KEY
+      ),
+  });
+});
+
+// ============================================================
+// CHAT API
+// ============================================================
+
 app.post("/api/chat", async (req, res) => {
   try {
-    const { question, academicContext } = req.body;
+    const {
+      question,
+      academicContext,
+    } = req.body;
 
-    if (!question || typeof question !== "string" || !question.trim()) {
-      return res.status(400).json({ error: "A valid question is required." });
+    // ========================================================
+    // VALIDATE QUESTION
+    // ========================================================
+
+    if (
+      !question ||
+      typeof question !== "string" ||
+      !question.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+
+        error:
+          "A valid question is required.",
+      });
     }
+
+    // ========================================================
+    // BUILD AI PROMPT
+    // ========================================================
 
     const prompt = `
 STUDENT ACADEMIC CONTEXT:
-${JSON.stringify(academicContext, null, 2)}
+
+${JSON.stringify(
+  academicContext || {},
+  null,
+  2
+)}
 
 STUDENT QUESTION:
-"${question}"
 
-Please provide a helpful, metric-driven response adhering strictly to your system instructions.
+"${question.trim()}"
+
+Answer the student's question using only
+the provided academic context.
+
+If information is missing, say:
+
+"Data unavailable."
+
+Give practical, specific and
+metric-driven recommendations.
 `;
 
-    const reply = await callGemini(prompt, SYSTEM_INSTRUCTION);
-    return res.json({ reply });
+    // ========================================================
+    // CALL GEMINI
+    // ========================================================
+
+    const reply =
+      await callGemini(prompt);
+
+    // ========================================================
+    // SUCCESS RESPONSE
+    // ========================================================
+
+    return res.status(200).json({
+      success: true,
+
+      reply,
+    });
   } catch (error) {
-    console.error("Chat Error:", error.message);
+    console.error(
+      "------------------------------------------"
+    );
+
+    console.error(
+      "Chat Error:",
+      error.message
+    );
+
+    console.error(
+      "------------------------------------------"
+    );
+
     return res.status(500).json({
-      error: error.message || "Failed to communicate with AI provider.",
+      success: false,
+
+      error:
+        error.message ||
+        "Failed to communicate with AI provider.",
     });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 CampusFlow AI Server running on port ${PORT}`);
+// ============================================================
+// 404 HANDLER
+// ============================================================
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+
+    error:
+      "API endpoint not found.",
+  });
 });
+
+// ============================================================
+// SERVER
+// ============================================================
+
+app.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
+    console.log(
+      `CampusFlow AI Server running on port ${PORT}`
+    );
+  }
+);
