@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for clean, reusable authorization checks
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function willBeDocOwner() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    // 1. User Profile Collection (Keyed by User UID)
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false; // Lock user profile deletions to Admin/Cloud Functions
+    }
+
+    // 2. Academic Collections (Root level with userId attribute)
+    match /subjects/{subjectId} {
+      allow read: if isDocOwner();
+      allow create: if willBeDocOwner();
+      allow update: if isDocOwner() && willBeDocOwner();
+      allow delete: if isDocOwner();
+    }
+
+    match /attendance/{attendanceId} {
+      allow read: if isDocOwner();
+      allow create: if willBeDocOwner();
+      allow update: if isDocOwner() && willBeDocOwner();
+      allow delete: if isDocOwner();
+    }
+
+    match /assignments/{assignmentId} {
+      allow read: if isDocOwner();
+      allow create: if willBeDocOwner();
+      allow update: if isDocOwner() && willBeDocOwner();
+      allow delete: if isDocOwner();
+    }
+
+    match /studySessions/{sessionId} {
+      allow read: if isDocOwner();
+      allow create: if willBeDocOwner();
+      allow update: if isDocOwner() && willBeDocOwner();
+      allow delete: if isDocOwner();
+    }
+
+    match /studyGoals/{goalId} {
+      allow read: if isDocOwner();
+      allow create: if willBeDocOwner();
+      allow update: if isDocOwner() && willBeDocOwner();
+      allow delete: if isDocOwner();
+    }
+
+    // 3. Notifications Collection
+    match /notifications/{notificationId} {
+      allow read: if isDocOwner();
+      allow create: if willBeDocOwner();
+      allow update: if isDocOwner() && willBeDocOwner();
+      allow delete: if isDocOwner();
+    }
+
+    // Deny all other unmatched paths by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
