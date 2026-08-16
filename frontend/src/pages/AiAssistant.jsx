@@ -329,7 +329,11 @@ export default function AiAssistant() {
     setLastFailedQuery(null);
 
     try {
-      const response = await fetch("http://localhost:5000/api/chat", {
+      const API_URL =
+        import.meta.env.VITE_API_URL ||
+        "https://campusflow-ai-server.onrender.com";
+
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -378,7 +382,7 @@ export default function AiAssistant() {
         id: `err-${Date.now()}`,
         sender: "ai",
         isError: true,
-        text: `⚠️ Request could not be completed. Make sure your local AI server (port 5000) is running.`,
+        text: `⚠️ Request could not be completed. Please check your internet connection or CampusFlow AI server.`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, errorMessage]);
