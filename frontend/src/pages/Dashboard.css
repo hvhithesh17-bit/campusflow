@@ -1,0 +1,362 @@
+/* CampusFlow Dashboard Pro UI
+   Works with the existing Dashboard.jsx without changing Firebase/business logic.
+*/
+
+.cf-dashboard-pro,
+.cf-dashboard-pro * { box-sizing: border-box; }
+
+.cf-dashboard-pro {
+  width: 100% !important;
+  min-height: 100% !important;
+  padding: clamp(14px, 2.4vw, 34px) !important;
+  background:
+    radial-gradient(circle at 90% -5%, rgba(37,99,235,.08), transparent 28rem),
+    radial-gradient(circle at -5% 35%, rgba(124,58,237,.05), transparent 24rem),
+    #f6f8fc !important;
+  color: #0f172a;
+}
+
+.cf-dashboard-pro > * { min-width: 0; }
+
+.cf-dashboard-pro > header {
+  position: relative;
+  overflow: hidden;
+  min-height: 250px;
+  padding: clamp(24px, 4vw, 44px) !important;
+  margin-bottom: 24px !important;
+  border: 0 !important;
+  border-radius: 28px !important;
+  color: #fff !important;
+  background:
+    radial-gradient(circle at 88% 20%, rgba(255,255,255,.18), transparent 18rem),
+    linear-gradient(135deg, #071a3a 0%, #123d92 52%, #2563eb 100%) !important;
+  box-shadow: 0 25px 70px rgba(37,99,235,.20) !important;
+}
+
+.cf-dashboard-pro > header::after {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -90px;
+  bottom: -180px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.07);
+  pointer-events: none;
+}
+
+.cf-dashboard-pro > header h1 {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(1.9rem, 4vw, 3.35rem) !important;
+  line-height: 1.03 !important;
+  letter-spacing: -.055em !important;
+  color: #fff !important;
+}
+
+.cf-dashboard-pro > header p {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  color: rgba(255,255,255,.72) !important;
+  font-size: clamp(.8rem, 1.2vw, .98rem) !important;
+  line-height: 1.65 !important;
+}
+
+.cf-dashboard-pro > header > div:last-child {
+  position: relative;
+  z-index: 2;
+}
+
+.cf-dashboard-pro > header button {
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease !important;
+}
+
+.cf-dashboard-pro > header button:first-child {
+  border-radius: 15px !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.12);
+}
+
+.cf-dashboard-pro > header button:last-child {
+  color: #fff !important;
+  background: rgba(255,255,255,.10) !important;
+  border-color: rgba(255,255,255,.20) !important;
+  backdrop-filter: blur(12px);
+}
+
+.cf-dashboard-pro > header button:hover {
+  transform: translateY(-2px);
+}
+
+/* Every dashboard card */
+.cf-dashboard-pro section > div,
+.cf-dashboard-pro section > a {
+  min-width: 0;
+}
+
+.cf-dashboard-pro section[style] > div,
+.cf-dashboard-pro section[style] > a,
+.cf-dashboard-pro section > div[style*="background"],
+.cf-dashboard-pro section > div[style*="border"] {
+  border-radius: 20px !important;
+}
+
+/* Metric cards */
+.cf-dashboard-pro section[style*="gridTemplateColumns"] > a > div {
+  min-height: 158px;
+  padding: 18px !important;
+  border-radius: 18px !important;
+  border: 1px solid #e5eaf1 !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: 0 8px 28px rgba(15,23,42,.045) !important;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease !important;
+}
+
+.cf-dashboard-pro section[style*="gridTemplateColumns"] > a > div:hover {
+  transform: translateY(-4px);
+  border-color: #d4ddec !important;
+  box-shadow: 0 18px 45px rgba(15,23,42,.09) !important;
+}
+
+/* Section headings */
+.cf-dashboard-pro h2,
+.cf-dashboard-pro h3 {
+  letter-spacing: -.025em;
+}
+
+.cf-dashboard-pro h3 {
+  font-weight: 800 !important;
+}
+
+.cf-dashboard-pro a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* IA summary cards */
+.cf-dashboard-pro section[style*="marginBottom"] > div[style*="gridTemplateColumns"] > div {
+  border-radius: 14px !important;
+  border-color: #e8edf4 !important;
+  background: #f8fafc !important;
+}
+
+/* Recommendation cards */
+.cf-dashboard-pro section[style*="marginBottom"] div[style*="recommendation"] {
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.cf-dashboard-pro section[style*="marginBottom"] div[style*="recommendation"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(15,23,42,.06);
+}
+
+/* Chart cards */
+.cf-dashboard-pro section[style*="gridTemplateColumns"] > div {
+  overflow: hidden;
+}
+
+.cf-dashboard-pro .recharts-wrapper {
+  max-width: 100% !important;
+}
+
+.cf-dashboard-pro .recharts-default-tooltip {
+  border-radius: 12px !important;
+}
+
+/* Progress */
+.cf-dashboard-pro div[style*="progressTrack"] {
+  height: 10px !important;
+}
+
+/* Buttons */
+.cf-dashboard-pro button {
+  font-family: inherit;
+  touch-action: manipulation;
+}
+
+.cf-dashboard-pro button:focus-visible,
+.cf-dashboard-pro a:focus-visible {
+  outline: 3px solid rgba(37,99,235,.25) !important;
+  outline-offset: 3px;
+}
+
+/* Tablet */
+@media (max-width: 1200px) {
+  .cf-dashboard-pro {
+    padding: 20px !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] {
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(300px"] {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .cf-dashboard-pro {
+    padding: 16px !important;
+  }
+
+  .cf-dashboard-pro > header {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    padding: 28px !important;
+    border-radius: 24px !important;
+  }
+
+  .cf-dashboard-pro > header > div:last-child {
+    width: 100%;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(300px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(320px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Android / small tablets */
+@media (max-width: 600px) {
+  .cf-dashboard-pro {
+    padding: 10px !important;
+  }
+
+  .cf-dashboard-pro > header {
+    padding: 22px 18px !important;
+    margin-bottom: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .cf-dashboard-pro > header h1 {
+    font-size: 2rem !important;
+  }
+
+  .cf-dashboard-pro > header p {
+    font-size: .75rem !important;
+    line-height: 1.55 !important;
+  }
+
+  .cf-dashboard-pro > header > div:last-child {
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+  }
+
+  .cf-dashboard-pro > header > div:last-child button:last-child {
+    margin-left: auto;
+  }
+
+  .cf-dashboard-pro section {
+    margin-bottom: 20px !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] > a > div {
+    min-height: 142px;
+    padding: 13px !important;
+    border-radius: 15px !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] > a > div div[style*="fontSize: \"2rem\""] {
+    font-size: 1.5rem !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(300px"],
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(320px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(280px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(170px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] > a > div > div:last-child {
+    max-width: 100% !important;
+    font-size: .61rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] > a > div {
+    overflow: hidden;
+  }
+
+  /* IA cards */
+  .cf-dashboard-pro section[style*="marginBottom"] > div[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cf-dashboard-pro section[style*="marginBottom"] div[style*="recommendation"] {
+    width: 100%;
+  }
+
+  /* Action / quick links */
+  .cf-dashboard-pro div[style*="gridTemplateColumns: \"repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Study session rows */
+  .cf-dashboard-pro div[style*="sessionRow"] {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+  }
+
+  /* Keep long names from causing horizontal scrolling */
+  .cf-dashboard-pro strong,
+  .cf-dashboard-pro p,
+  .cf-dashboard-pro span {
+    overflow-wrap: anywhere;
+  }
+
+  .cf-dashboard-pro .recharts-legend-item-text {
+    font-size: 10px !important;
+  }
+}
+
+/* Very small Android phones */
+@media (max-width: 390px) {
+  .cf-dashboard-pro {
+    padding: 7px !important;
+  }
+
+  .cf-dashboard-pro > header {
+    padding: 19px 15px !important;
+  }
+
+  .cf-dashboard-pro > header h1 {
+    font-size: 1.72rem !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cf-dashboard-pro section[style*="repeat(auto-fit, minmax(220px"] > a > div {
+    min-height: 130px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .cf-dashboard-pro *,
+  .cf-dashboard-pro *::before,
+  .cf-dashboard-pro *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

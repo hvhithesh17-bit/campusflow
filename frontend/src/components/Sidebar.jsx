@@ -1,7 +1,6 @@
 // src/components/Sidebar.jsx
 
-import React from "react";
-
+import React, { useMemo } from "react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -14,391 +13,398 @@ import {
   X,
   BarChart2,
   Bot,
+  Menu,
+  MoreHorizontal,
+  ChevronRight,
 } from "lucide-react";
-
-import {
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
-
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import "./Sidebar.css";
+
+const NAV_ITEMS = [
+  {
+    id: "dashboard",
+    path: "/dashboard",
+    label: "Dashboard",
+    shortLabel: "Home",
+    icon: LayoutDashboard,
+  },
+  {
+    id: "subjects",
+    path: "/subjects",
+    label: "Subjects",
+    shortLabel: "Subjects",
+    icon: BookOpen,
+  },
+  {
+    id: "attendance",
+    path: "/attendance",
+    label: "Attendance",
+    shortLabel: "Attendance",
+    icon: CalendarCheck,
+  },
+  {
+    id: "assignments",
+    path: "/assignments",
+    label: "Assignments",
+    shortLabel: "Tasks",
+    icon: ClipboardList,
+  },
+  {
+    id: "studyPlanner",
+    path: "/study-planner",
+    label: "Study Planner",
+    shortLabel: "Planner",
+    icon: CalendarDays,
+  },
+  {
+    id: "sgpa",
+    path: "/sgpa",
+    label: "SGPA Calculator",
+    shortLabel: "SGPA",
+    icon: Calculator,
+  },
+  {
+    id: "analytics",
+    path: "/analytics",
+    label: "Analytics",
+    shortLabel: "Analytics",
+    icon: BarChart2,
+  },
+  {
+    id: "ai-assistant",
+    path: "/ai-assistant",
+    label: "AI Assistant",
+    shortLabel: "AI",
+    icon: Bot,
+  },
+  {
+    id: "profile",
+    path: "/profile",
+    label: "Profile",
+    shortLabel: "Profile",
+    icon: User,
+  },
+];
+
+const MOBILE_PRIMARY_IDS = [
+  "dashboard",
+  "subjects",
+  "studyPlanner",
+  "assignments",
+];
 
 const Sidebar = ({
   currentPage,
   setCurrentPage,
-  isOpen,
+  isOpen = false,
   setIsOpen,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-
   const { logout } = useAuth();
 
-  // ============================================================
-  // NAVIGATION ITEMS
-  // ============================================================
+  const activeItem = useMemo(() => {
+    return (
+      NAV_ITEMS.find((item) => location.pathname === item.path) ||
+      NAV_ITEMS.find((item) => currentPage === item.id) ||
+      NAV_ITEMS[0]
+    );
+  }, [location.pathname, currentPage]);
 
-  const navItems = [
-    {
-      id: "dashboard",
-      path: "/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-    },
+  const mobilePrimaryItems = NAV_ITEMS.filter((item) =>
+    MOBILE_PRIMARY_IDS.includes(item.id)
+  );
 
-    {
-      id: "subjects",
-      path: "/subjects",
-      label: "Subjects",
-      icon: BookOpen,
-    },
-
-    {
-      id: "attendance",
-      path: "/attendance",
-      label: "Attendance",
-      icon: CalendarCheck,
-    },
-
-    {
-      id: "assignments",
-      path: "/assignments",
-      label: "Assignments",
-      icon: ClipboardList,
-    },
-
-    // IMPORTANT:
-    // This must be /study-planner
-    // because StudyPlanner.jsx uses this route.
-    {
-      id: "studyPlanner",
-      path: "/study-planner",
-      label: "Study Planner",
-      icon: CalendarDays,
-    },
-
-    {
-      id: "sgpa",
-      path: "/sgpa",
-      label: "SGPA Calculator",
-      icon: Calculator,
-    },
-
-    {
-      id: "analytics",
-      path: "/analytics",
-      label: "Analytics",
-      icon: BarChart2,
-    },
-
-    {
-      id: "ai-assistant",
-      path: "/ai-assistant",
-      label: "AI Assistant",
-      icon: Bot,
-    },
-
-    {
-      id: "profile",
-      path: "/profile",
-      label: "Profile",
-      icon: User,
-    },
-  ];
-
-  // ============================================================
-  // NAVIGATION
-  // ============================================================
+  const closeMobileMenu = () => {
+    setIsOpen?.(false);
+  };
 
   const handleNavigation = (item) => {
     navigate(item.path);
-
-    if (setCurrentPage) {
-      setCurrentPage(item.id);
-    }
-
-    if (setIsOpen) {
-      setIsOpen(false);
-    }
+    setCurrentPage?.(item.id);
+    closeMobileMenu();
   };
-
-  // ============================================================
-  // LOGOUT
-  // ============================================================
 
   const handleLogout = async () => {
     try {
       await logout();
-
+      setCurrentPage?.("login");
+      closeMobileMenu();
       navigate("/login");
-
-      if (setCurrentPage) {
-        setCurrentPage("login");
-      }
-
-      if (setIsOpen) {
-        setIsOpen(false);
-      }
     } catch (error) {
       console.error("Logout Error:", error);
     }
   };
 
-  // ============================================================
-  // ACTIVE ROUTE
-  // ============================================================
-
   const isItemActive = (item) => {
-    // Exact match
-    if (location.pathname === item.path) {
-      return true;
-    }
+    if (location.pathname === item.path) return true;
 
-    // Current page fallback
+    // Keep nested routes active, but don't make "/" accidentally active.
     if (
-      currentPage === item.id &&
-      !location.pathname.startsWith("/login")
+      item.path !== "/dashboard" &&
+      location.pathname.startsWith(`${item.path}/`)
     ) {
       return true;
     }
 
-    return false;
+    return currentPage === item.id && !location.pathname.startsWith("/login");
   };
-
-  // ============================================================
-  // UI
-  // ============================================================
 
   return (
     <>
-      {/* ======================================================
-          MOBILE OVERLAY
-      ====================================================== */}
-
-      {isOpen && (
-        <div
-          onClick={() => {
-            if (setIsOpen) {
-              setIsOpen(false);
-            }
-          }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 40,
-          }}
-        />
-      )}
-
-      {/* ======================================================
-          SIDEBAR
-      ====================================================== */}
-
-      <aside
-        className={`sidebar ${
-          isOpen ? "open" : ""
-        }`}
-        style={{
-          width: "var(--sidebar-width)",
-          backgroundColor:
-            "var(--bg-secondary)",
-          borderRight:
-            "1px solid var(--border-color)",
-          height: "100vh",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          display: "flex",
-          flexDirection: "column",
-          zIndex: 50,
-          transition:
-            "transform 0.3s ease",
-        }}
-      >
-        {/* ==================================================
-            LOGO / HEADER
-        ================================================== */}
-
-        <div
-          style={{
-            padding: "1.5rem",
-            borderBottom:
-              "1px solid var(--border-color)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent:
-              "space-between",
-          }}
+      {/* =====================================================
+          MOBILE TOP BAR
+      ===================================================== */}
+      <header className="cf-sidebar-mobile-header">
+        <button
+          type="button"
+          className="cf-sidebar-icon-button"
+          onClick={() => setIsOpen?.(!isOpen)}
+          aria-label={isOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isOpen}
         >
-          <h2
-            style={{
-              margin: 0,
-              color: "var(--accent-color)",
-            }}
+          {isOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+
+        <button
+          type="button"
+          className="cf-sidebar-mobile-brand"
+          onClick={() => handleNavigation(NAV_ITEMS[0])}
+          aria-label="Go to Dashboard"
+        >
+          <span className="cf-sidebar-brand-mark">C</span>
+          <span className="cf-sidebar-mobile-title">CampusFlow</span>
+        </button>
+
+        <button
+          type="button"
+          className="cf-sidebar-mobile-profile"
+          onClick={() => handleNavigation(NAV_ITEMS[NAV_ITEMS.length - 1])}
+          aria-label="Open profile"
+        >
+          <User size={19} />
+        </button>
+      </header>
+
+      {/* =====================================================
+          MOBILE OVERLAY
+      ===================================================== */}
+      <button
+        type="button"
+        className={`cf-sidebar-overlay ${isOpen ? "is-visible" : ""}`}
+        onClick={closeMobileMenu}
+        aria-label="Close navigation"
+        tabIndex={isOpen ? 0 : -1}
+      />
+
+      {/* =====================================================
+          DESKTOP SIDEBAR / MOBILE DRAWER
+      ===================================================== */}
+      <aside
+        className={`cf-sidebar ${isOpen ? "is-open" : ""}`}
+        aria-label="Main navigation"
+      >
+        <div className="cf-sidebar-header">
+          <button
+            type="button"
+            className="cf-sidebar-brand"
+            onClick={() => handleNavigation(NAV_ITEMS[0])}
           >
-            CampusFlow
-          </h2>
+            <span className="cf-sidebar-brand-mark">C</span>
+
+            <span className="cf-sidebar-brand-copy">
+              <strong>CampusFlow</strong>
+              <small>Academic Hub</small>
+            </span>
+          </button>
 
           <button
             type="button"
-            className="btn"
-            aria-label="Close sidebar"
-            style={{
-              padding: "0.25rem",
-              display: "block",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
-            onClick={() => {
-              if (setIsOpen) {
-                setIsOpen(false);
-              }
-            }}
+            className="cf-sidebar-close"
+            onClick={closeMobileMenu}
+            aria-label="Close menu"
           >
-            <X
-              size={20}
-              className="close-icon"
-              style={{
-                display: "none",
-              }}
-            />
+            <X size={20} />
           </button>
         </div>
 
-        {/* ==================================================
-            NAVIGATION
-        ================================================== */}
+        <div className="cf-sidebar-current">
+          <span className="cf-sidebar-current-dot" />
+          <span>Student workspace</span>
+        </div>
 
-        <nav
-          style={{
-            flex: 1,
-            padding: "1rem 0",
-            overflowY: "auto",
-          }}
-        >
-          <ul
-            style={{
-              listStyle: "none",
-              padding: 0,
-              margin: 0,
-            }}
-          >
-            {navItems.map((item) => {
-              const Icon = item.icon;
+        <nav className="cf-sidebar-nav">
+          <p className="cf-sidebar-section-label">MAIN</p>
 
-              const isActive =
-                isItemActive(item);
+          {NAV_ITEMS.slice(0, 5).map((item) => {
+            const Icon = item.icon;
+            const active = isItemActive(item);
 
-              return (
-                <li
-                  key={item.id}
-                  style={{
-                    margin:
-                      "0.25rem 1rem",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleNavigation(item)
-                    }
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                      padding:
-                        "0.75rem 1rem",
-                      borderRadius: "8px",
-                      border: "none",
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`cf-sidebar-nav-item ${
+                  active ? "is-active" : ""
+                }`}
+                onClick={() => handleNavigation(item)}
+                aria-current={active ? "page" : undefined}
+              >
+                <span className="cf-sidebar-nav-icon">
+                  <Icon size={19} strokeWidth={active ? 2.4 : 2} />
+                </span>
 
-                      backgroundColor:
-                        isActive
-                          ? "var(--accent-color)"
-                          : "transparent",
+                <span className="cf-sidebar-nav-label">
+                  {item.label}
+                </span>
 
-                      color: isActive
-                        ? "white"
-                        : "var(--text-secondary)",
+                {active && (
+                  <span className="cf-sidebar-active-line" />
+                )}
+              </button>
+            );
+          })}
 
-                      cursor: "pointer",
+          <p className="cf-sidebar-section-label cf-sidebar-section-spaced">
+            TOOLS
+          </p>
 
-                      fontWeight: isActive
-                        ? 600
-                        : 500,
+          {NAV_ITEMS.slice(5, 8).map((item) => {
+            const Icon = item.icon;
+            const active = isItemActive(item);
 
-                      textAlign: "left",
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`cf-sidebar-nav-item ${
+                  active ? "is-active" : ""
+                }`}
+                onClick={() => handleNavigation(item)}
+                aria-current={active ? "page" : undefined}
+              >
+                <span className="cf-sidebar-nav-icon">
+                  <Icon size={19} strokeWidth={active ? 2.4 : 2} />
+                </span>
 
-                      transition:
-                        "all 0.2s ease",
-                    }}
-                  >
-                    <Icon size={20} />
+                <span className="cf-sidebar-nav-label">
+                  {item.label}
+                </span>
 
-                    <span>
-                      {item.label}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                {active && (
+                  <span className="cf-sidebar-active-line" />
+                )}
+              </button>
+            );
+          })}
+
+          <p className="cf-sidebar-section-label cf-sidebar-section-spaced">
+            ACCOUNT
+          </p>
+
+          {NAV_ITEMS.slice(8).map((item) => {
+            const Icon = item.icon;
+            const active = isItemActive(item);
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`cf-sidebar-nav-item ${
+                  active ? "is-active" : ""
+                }`}
+                onClick={() => handleNavigation(item)}
+                aria-current={active ? "page" : undefined}
+              >
+                <span className="cf-sidebar-nav-icon">
+                  <Icon size={19} strokeWidth={active ? 2.4 : 2} />
+                </span>
+
+                <span className="cf-sidebar-nav-label">
+                  {item.label}
+                </span>
+
+                {active && (
+                  <span className="cf-sidebar-active-line" />
+                )}
+              </button>
+            );
+          })}
         </nav>
 
-        {/* ==================================================
-            LOGOUT
-        ================================================== */}
-
-        <div
-          style={{
-            padding: "1rem",
-            borderTop:
-              "1px solid var(--border-color)",
-          }}
-        >
+        <div className="cf-sidebar-footer">
           <button
             type="button"
+            className="cf-sidebar-logout"
             onClick={handleLogout}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              padding:
-                "0.75rem 1rem",
-              borderRadius: "8px",
-              border: "none",
-              backgroundColor:
-                "transparent",
-              color:
-                "var(--danger-color)",
-              cursor: "pointer",
-              fontWeight: 500,
-              textAlign: "left",
-            }}
           >
-            <LogOut size={20} />
-
+            <span className="cf-sidebar-nav-icon">
+              <LogOut size={19} />
+            </span>
             <span>Logout</span>
           </button>
+
+          <div className="cf-sidebar-version">
+            <span>CampusFlow</span>
+            <span>v1.0</span>
+          </div>
         </div>
       </aside>
 
-      {/* ======================================================
-          MOBILE CSS
-      ====================================================== */}
+      {/* =====================================================
+          MOBILE BOTTOM NAVIGATION
+      ===================================================== */}
+      <nav className="cf-mobile-bottom-nav" aria-label="Mobile navigation">
+        {mobilePrimaryItems.map((item) => {
+          const Icon = item.icon;
+          const active = isItemActive(item);
 
-      <style>
-        {`
-          @media (max-width: 768px) {
-            .close-icon {
-              display: block !important;
-            }
-          }
-        `}
-      </style>
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`cf-mobile-nav-item ${active ? "is-active" : ""}`}
+              onClick={() => handleNavigation(item)}
+              aria-current={active ? "page" : undefined}
+            >
+              <span className="cf-mobile-nav-icon">
+                <Icon size={20} strokeWidth={active ? 2.5 : 2} />
+              </span>
+              <span>{item.shortLabel}</span>
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          className={`cf-mobile-nav-item ${
+            isOpen ? "is-active" : ""
+          }`}
+          onClick={() => setIsOpen?.(!isOpen)}
+          aria-label="Open more navigation options"
+          aria-expanded={isOpen}
+        >
+          <span className="cf-mobile-nav-icon">
+            <MoreHorizontal size={21} />
+          </span>
+          <span>More</span>
+        </button>
+      </nav>
+
+      {/* =====================================================
+          MOBILE SPACERS
+          Prevent fixed navigation from covering page content.
+      ===================================================== */}
+      <div className="cf-mobile-top-spacer" aria-hidden="true" />
+      <div className="cf-mobile-bottom-spacer" aria-hidden="true" />
+
+      {/* =====================================================
+          ACTIVE PAGE ANNOUNCEMENT FOR SCREEN READERS
+      ===================================================== */}
+      <span className="sr-only" aria-live="polite">
+        {activeItem.label}
+      </span>
     </>
   );
 };

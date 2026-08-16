@@ -1,0 +1,849 @@
+/* =========================================================
+   CampusFlow — Premium Responsive Navigation
+   Desktop sidebar + mobile drawer + mobile bottom navigation
+   ========================================================= */
+
+:root {
+  --cf-nav-width: 264px;
+  --cf-nav-bg: #ffffff;
+  --cf-nav-border: #e8edf5;
+  --cf-nav-text: #182338;
+  --cf-nav-muted: #718096;
+  --cf-nav-primary: #2563eb;
+  --cf-nav-primary-dark: #1d4ed8;
+  --cf-nav-primary-soft: #eff6ff;
+  --cf-nav-danger: #ef4444;
+  --cf-nav-radius: 14px;
+  --cf-nav-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+}
+
+/* ---------- reset ---------- */
+
+.cf-sidebar *,
+.cf-sidebar-mobile-header *,
+.cf-mobile-bottom-nav *,
+.cf-sidebar-overlay * {
+  box-sizing: border-box;
+}
+
+.cf-sidebar button,
+.cf-sidebar-mobile-header button,
+.cf-mobile-bottom-nav button {
+  font: inherit;
+}
+
+/* ---------- accessibility ---------- */
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* =========================================================
+   DESKTOP SIDEBAR
+   ========================================================= */
+
+.cf-sidebar {
+  position: fixed;
+  z-index: 1000;
+  inset: 0 auto 0 0;
+
+  width: var(--cf-nav-width);
+  height: 100dvh;
+
+  display: flex;
+  flex-direction: column;
+
+  background:
+    radial-gradient(
+      circle at 0% 0%,
+      rgba(37, 99, 235, 0.045),
+      transparent 34%
+    ),
+    var(--cf-nav-bg);
+
+  border-right: 1px solid var(--cf-nav-border);
+
+  color: var(--cf-nav-text);
+
+  overflow: hidden;
+
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms ease;
+}
+
+/* ---------- header ---------- */
+
+.cf-sidebar-header {
+  min-height: 82px;
+  padding: 18px 18px 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+}
+
+.cf-sidebar-brand,
+.cf-sidebar-mobile-brand {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+
+  display: flex;
+  align-items: center;
+
+  cursor: pointer;
+  color: inherit;
+
+  text-align: left;
+}
+
+.cf-sidebar-brand {
+  gap: 11px;
+}
+
+.cf-sidebar-brand-mark {
+  width: 42px;
+  height: 42px;
+
+  flex: 0 0 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 13px;
+
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 800;
+
+  background:
+    linear-gradient(145deg, #2563eb 0%, #4f46e5 100%);
+
+  box-shadow:
+    0 8px 20px rgba(37, 99, 235, 0.25);
+}
+
+.cf-sidebar-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cf-sidebar-brand-copy strong {
+  font-size: 17px;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.cf-sidebar-brand-copy small {
+  color: var(--cf-nav-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cf-sidebar-close {
+  display: none;
+
+  width: 38px;
+  height: 38px;
+
+  border: 0;
+  border-radius: 11px;
+
+  background: #f1f5f9;
+  color: #475569;
+
+  place-items: center;
+  cursor: pointer;
+}
+
+/* ---------- workspace indicator ---------- */
+
+.cf-sidebar-current {
+  margin: 14px 14px 6px;
+  padding: 9px 11px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  color: #64748b;
+  background: #f8fafc;
+
+  border: 1px solid #eef2f7;
+  border-radius: 10px;
+
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cf-sidebar-current-dot {
+  width: 7px;
+  height: 7px;
+
+  flex: 0 0 7px;
+
+  border-radius: 50%;
+  background: #22c55e;
+
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+}
+
+/* ---------- nav ---------- */
+
+.cf-sidebar-nav {
+  flex: 1;
+
+  padding: 10px 10px 12px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: thin;
+  scrollbar-color: #dbe3ef transparent;
+}
+
+.cf-sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cf-sidebar-nav::-webkit-scrollbar-thumb {
+  background: #dbe3ef;
+  border-radius: 99px;
+}
+
+.cf-sidebar-section-label {
+  margin: 12px 10px 7px;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.cf-sidebar-section-spaced {
+  margin-top: 21px;
+}
+
+.cf-sidebar-nav-item {
+  position: relative;
+
+  width: 100%;
+  min-height: 46px;
+
+  margin: 3px 0;
+  padding: 8px 11px;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  border: 1px solid transparent;
+  border-radius: 12px;
+
+  background: transparent;
+  color: var(--cf-nav-muted);
+
+  cursor: pointer;
+
+  text-align: left;
+
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.cf-sidebar-nav-item:hover {
+  color: var(--cf-nav-text);
+  background: #f8fafc;
+  border-color: #edf2f7;
+  transform: translateX(2px);
+}
+
+.cf-sidebar-nav-item.is-active {
+  color: var(--cf-nav-primary);
+  background: var(--cf-nav-primary-soft);
+  border-color: #dbeafe;
+}
+
+.cf-sidebar-nav-icon {
+  width: 34px;
+  height: 34px;
+
+  flex: 0 0 34px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 9px;
+
+  color: inherit;
+}
+
+.cf-sidebar-nav-item.is-active .cf-sidebar-nav-icon {
+  color: #2563eb;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.cf-sidebar-nav-label {
+  min-width: 0;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.cf-sidebar-active-line {
+  position: absolute;
+  right: -1px;
+
+  width: 3px;
+  height: 22px;
+
+  border-radius: 99px 0 0 99px;
+  background: #2563eb;
+}
+
+/* ---------- footer ---------- */
+
+.cf-sidebar-footer {
+  padding: 12px 14px 15px;
+
+  border-top: 1px solid var(--cf-nav-border);
+}
+
+.cf-sidebar-logout {
+  width: 100%;
+  min-height: 46px;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  padding: 7px 10px;
+
+  border: 1px solid transparent;
+  border-radius: 12px;
+
+  background: transparent;
+  color: var(--cf-nav-danger);
+
+  cursor: pointer;
+  text-align: left;
+
+  font-size: 13px;
+  font-weight: 650;
+
+  transition:
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.cf-sidebar-logout:hover {
+  background: #fff1f2;
+  border-color: #ffe4e6;
+}
+
+.cf-sidebar-version {
+  margin-top: 8px;
+  padding: 0 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  color: #a0aec0;
+
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* =========================================================
+   MOBILE HEADER
+   ========================================================= */
+
+.cf-sidebar-mobile-header {
+  display: none;
+}
+
+/* =========================================================
+   MOBILE BOTTOM NAV
+   ========================================================= */
+
+.cf-mobile-bottom-nav {
+  display: none;
+}
+
+.cf-mobile-top-spacer,
+.cf-mobile-bottom-spacer {
+  display: none;
+}
+
+/* =========================================================
+   OVERLAY
+   ========================================================= */
+
+.cf-sidebar-overlay {
+  display: none;
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1024px) and (min-width: 769px) {
+  :root {
+    --cf-nav-width: 228px;
+  }
+
+  .cf-sidebar-header {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .cf-sidebar-brand-copy strong {
+    font-size: 15px;
+  }
+
+  .cf-sidebar-nav-item {
+    min-height: 44px;
+  }
+
+  .cf-sidebar-nav-label {
+    font-size: 12px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  :root {
+    --cf-mobile-header-height: 64px;
+    --cf-mobile-bottom-height: 70px;
+  }
+
+  /* ---------- fixed top header ---------- */
+
+  .cf-sidebar-mobile-header {
+    position: fixed;
+    z-index: 1100;
+    inset: 0 0 auto 0;
+
+    height: var(--cf-mobile-header-height);
+
+    padding:
+      max(8px, env(safe-area-inset-top))
+      12px
+      8px;
+
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    align-items: center;
+    gap: 8px;
+
+    background: rgba(255, 255, 255, 0.92);
+    border-bottom: 1px solid #e8edf5;
+
+    box-shadow:
+      0 6px 24px rgba(15, 23, 42, 0.06);
+
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .cf-sidebar-icon-button,
+  .cf-sidebar-mobile-profile {
+    width: 42px;
+    height: 42px;
+
+    display: grid;
+    place-items: center;
+
+    border: 1px solid #e5eaf2;
+    border-radius: 12px;
+
+    background: #ffffff;
+    color: #334155;
+
+    cursor: pointer;
+
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .cf-sidebar-icon-button:active,
+  .cf-sidebar-mobile-profile:active {
+    transform: scale(0.95);
+  }
+
+  .cf-sidebar-mobile-brand {
+    min-width: 0;
+    justify-self: center;
+
+    gap: 8px;
+  }
+
+  .cf-sidebar-mobile-brand .cf-sidebar-brand-mark {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+
+    border-radius: 10px;
+
+    font-size: 16px;
+  }
+
+  .cf-sidebar-mobile-title {
+    min-width: 0;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    color: #111827;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
+  /* ---------- mobile drawer ---------- */
+
+  .cf-sidebar {
+    z-index: 1200;
+
+    width: min(86vw, 330px);
+    height: 100dvh;
+
+    transform: translateX(-105%);
+
+    box-shadow: none;
+
+    border-right: 1px solid #e5eaf2;
+
+    transition:
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 280ms ease;
+  }
+
+  .cf-sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: var(--cf-nav-shadow);
+  }
+
+  .cf-sidebar-header {
+    min-height: 76px;
+    padding: 14px 15px;
+  }
+
+  .cf-sidebar-close {
+    display: grid;
+  }
+
+  .cf-sidebar-current {
+    margin-top: 10px;
+  }
+
+  /* ---------- overlay ---------- */
+
+  .cf-sidebar-overlay {
+    position: fixed;
+    z-index: 1150;
+    inset: 0;
+
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    padding: 0;
+    margin: 0;
+
+    border: 0;
+
+    background: rgba(15, 23, 42, 0.48);
+
+    opacity: 0;
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transition:
+      opacity 220ms ease,
+      visibility 220ms ease;
+
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  .cf-sidebar-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* ---------- bottom nav ---------- */
+
+  .cf-mobile-bottom-nav {
+    position: fixed;
+    z-index: 1100;
+    inset: auto 0 0 0;
+
+    height: var(--cf-mobile-bottom-height);
+
+    padding:
+      6px
+      8px
+      max(7px, env(safe-area-inset-bottom));
+
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 3px;
+
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid #e7ecf3;
+
+    box-shadow:
+      0 -8px 30px rgba(15, 23, 42, 0.08);
+
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .cf-mobile-nav-item {
+    min-width: 0;
+    min-height: 54px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+
+    padding: 5px 2px;
+
+    border: 0;
+    border-radius: 13px;
+
+    background: transparent;
+    color: #7b8798;
+
+    cursor: pointer;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    -webkit-tap-highlight-color: transparent;
+
+    transition:
+      background 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .cf-mobile-nav-item:active {
+    transform: scale(0.94);
+  }
+
+  .cf-mobile-nav-item.is-active {
+    color: #2563eb;
+    background: #eff6ff;
+  }
+
+  .cf-mobile-nav-icon {
+    width: 30px;
+    height: 28px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 9px;
+  }
+
+  .cf-mobile-nav-item.is-active .cf-mobile-nav-icon {
+    background: #dbeafe;
+  }
+
+  /* ---------- spacers ---------- */
+
+  .cf-mobile-top-spacer {
+    display: block;
+    height: var(--cf-mobile-header-height);
+  }
+
+  .cf-mobile-bottom-spacer {
+    display: block;
+    height: var(--cf-mobile-bottom-height);
+  }
+}
+
+/* =========================================================
+   SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 380px) {
+  .cf-sidebar-mobile-header {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .cf-sidebar-icon-button,
+  .cf-sidebar-mobile-profile {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cf-sidebar-mobile-title {
+    font-size: 14px;
+  }
+
+  .cf-mobile-nav-item {
+    font-size: 8px;
+  }
+
+  .cf-mobile-nav-icon {
+    width: 28px;
+  }
+}
+
+/* =========================================================
+   LANDSCAPE PHONES
+   ========================================================= */
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .cf-mobile-bottom-nav {
+    height: 58px;
+  }
+
+  .cf-mobile-top-spacer {
+    height: 58px;
+  }
+
+  .cf-mobile-bottom-spacer {
+    height: 58px;
+  }
+
+  .cf-mobile-nav-item {
+    min-height: 46px;
+    flex-direction: row;
+    gap: 5px;
+  }
+
+  .cf-mobile-nav-icon {
+    height: 26px;
+  }
+}
+
+/* =========================================================
+   TOUCH / MOTION
+   ========================================================= */
+
+@media (hover: none) and (pointer: coarse) {
+  .cf-sidebar-nav-item:hover {
+    transform: none;
+  }
+
+  .cf-sidebar-logout:hover {
+    background: transparent;
+    border-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-sidebar,
+  .cf-sidebar-overlay,
+  .cf-sidebar-nav-item,
+  .cf-mobile-nav-item {
+    transition: none !important;
+  }
+}
+
+/* =========================================================
+   DARK MODE COMPATIBILITY
+   Works if the application sets .dark on body/root.
+   ========================================================= */
+
+.dark .cf-sidebar,
+.dark .cf-sidebar-mobile-header,
+.dark .cf-mobile-bottom-nav {
+  --cf-nav-bg: #0f172a;
+  --cf-nav-border: #243044;
+  --cf-nav-text: #f8fafc;
+  --cf-nav-muted: #94a3b8;
+
+  background: rgba(15, 23, 42, 0.96);
+  color: #f8fafc;
+  border-color: #243044;
+}
+
+.dark .cf-sidebar-current {
+  background: #111c31;
+  border-color: #26344b;
+}
+
+.dark .cf-sidebar-nav-item:hover {
+  background: #172238;
+  border-color: #26344b;
+}
+
+.dark .cf-sidebar-nav-item.is-active {
+  background: #172d55;
+  border-color: #234a87;
+}
+
+.dark .cf-sidebar-nav-item.is-active .cf-sidebar-nav-icon {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .cf-sidebar-close,
+.dark .cf-sidebar-icon-button,
+.dark .cf-sidebar-mobile-profile {
+  background: #172238;
+  border-color: #2a3951;
+  color: #e2e8f0;
+}
+
+.dark .cf-mobile-nav-item {
+  color: #94a3b8;
+}
+
+.dark .cf-mobile-nav-item.is-active {
+  background: #172d55;
+  color: #60a5fa;
+}
+
+.dark .cf-mobile-nav-item.is-active .cf-mobile-nav-icon {
+  background: #1e3a67;
+}
+
+.dark .cf-sidebar-footer {
+  border-color: #243044;
+}
+
+.dark .cf-sidebar-mobile-title {
+  color: #f8fafc;
+}

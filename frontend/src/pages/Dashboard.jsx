@@ -61,6 +61,7 @@ import {
 } from "../utils/academicRecommendations";
 import AttendanceChart from "../components/dashboard/AttendanceChart";
 import WeeklyStudyChart from "../components/dashboard/WeeklyStudyChart";
+import "./Dashboard.css";
 
 const PIE_FALLBACK_COLORS = [
   "#2563eb",
@@ -514,7 +515,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={styles.page}>
+    <div className="cf-dashboard-pro" style={styles.page}>
       {/* Header */}
       <header style={styles.header}>
         <div>
@@ -1123,7 +1124,7 @@ function alertStyle(severity) {
 
 function DashboardSkeleton() {
   return (
-    <div style={styles.page}>
+    <div className="cf-dashboard-pro" style={styles.page}>
       <div style={{ ...styles.header, borderBottom: "none" }}>
         <div>
           <div style={{ ...styles.skeleton, width: 120, height: 14 }} />
