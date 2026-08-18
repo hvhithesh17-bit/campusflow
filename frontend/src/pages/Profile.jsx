@@ -8,15 +8,15 @@ import {
   User,
   Mail,
   GraduationCap,
-  Calendar,
   Shield,
   Save,
-  CheckCircle,
+  CheckCircle2,
   AlertCircle,
-  Hash,
-  Sparkles,
-  BookOpen,
   IdCard,
+  Building2,
+  BookOpen,
+  Calendar,
+  Sparkles,
 } from "lucide-react";
 
 export default function Profile() {
@@ -113,500 +113,509 @@ export default function Profile() {
     }
   };
 
+  const profileStyles = `
+    .cf-profile-root {
+      min-height: 100%;
+      padding: 24px clamp(14px, 3vw, 32px) 44px;
+      background: #f8fafc;
+      color: #0f172a;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .cf-profile-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .cf-profile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      border: 1px solid #dbeafe;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fbff 60%, #eff6ff 100%);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+    }
+    .cf-profile-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      width: fit-content;
+    }
+    .cf-profile-header h1 {
+      margin: 4px 0 0;
+      font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #0f172a;
+    }
+    .cf-profile-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+
+    /* Hero Overview Card */
+    .cf-profile-hero-card {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+      flex-wrap: wrap;
+    }
+    .cf-profile-avatar {
+      width: 68px;
+      height: 68px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      font-weight: 800;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+      flex-shrink: 0;
+    }
+    .cf-profile-hero-meta {
+      flex: 1;
+      min-width: 220px;
+    }
+    .cf-profile-hero-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .cf-profile-hero-top h2 {
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    .cf-profile-role-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .cf-profile-hero-details {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #64748b;
+      font-size: 0.82rem;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .cf-profile-hero-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Alerts */
+    .cf-profile-alert {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 0.825rem;
+    }
+    .cf-profile-alert-success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+    .cf-profile-alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    /* Grid Sections */
+    .cf-profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .cf-profile-section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+    }
+    .cf-profile-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 18px 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .cf-profile-form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .cf-profile-field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #334155;
+    }
+    .cf-profile-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .cf-profile-input-icon {
+      position: absolute;
+      left: 12px;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+    .cf-profile-input {
+      width: 100%;
+      height: 42px;
+      padding: 0 12px 0 38px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: #0f172a;
+      background: #ffffff;
+      box-sizing: border-box;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+    .cf-profile-input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .cf-profile-input:disabled {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+    .cf-profile-select {
+      width: 100%;
+      height: 42px;
+      padding: 0 12px 0 38px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: #0f172a;
+      background: #ffffff;
+      box-sizing: border-box;
+      outline: none;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .cf-profile-select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .cf-profile-submit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 0 20px;
+      border-radius: 10px;
+      border: none;
+      background: #2563eb;
+      color: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+      transition: all 0.15s ease;
+    }
+    .cf-profile-submit-btn:hover:not(:disabled) {
+      background: #1d4ed8;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.28);
+    }
+    .cf-profile-submit-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Skeletons */
+    .cf-profile-skeleton {
+      height: 200px;
+      border-radius: 20px;
+      background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: cfProfileShimmer 1.3s infinite;
+      border: 1px solid #e2e8f0;
+    }
+    @keyframes cfProfileShimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @media (max-width: 640px) {
+      .cf-profile-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+      }
+      .cf-profile-hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .cf-profile-hero-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+    }
+  `;
+
   return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "100%",
-        padding: "2rem 2.5rem",
-        boxSizing: "border-box",
-        minHeight: "100%",
-      }}
-    >
-      {/* Top Banner Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-          paddingBottom: "1.5rem",
-          borderBottom: "1px solid #e2e8f0",
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-            <div
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
-                backgroundColor: "#eff6ff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#2563eb",
-              }}
-            >
-              <User size={22} />
-            </div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "1.75rem",
-                fontWeight: "700",
-                color: "#0f172a",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Student Profile
-            </h1>
-          </div>
-          <p style={{ margin: 0, color: "#64748b", fontSize: "0.95rem" }}>
-            Manage your personal credentials, departmental affiliation, and semester standing.
-          </p>
-        </div>
-      </div>
-
-      {/* Profile Overview Card */}
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: "16px",
-          padding: "1.5rem 2rem",
-          marginBottom: "2rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "1.5rem",
-          flexWrap: "wrap",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-        }}
-      >
-        <div
-          style={{
-            width: "64px",
-            height: "64px",
-            borderRadius: "50%",
-            backgroundColor: "#eff6ff",
-            border: "2px solid #bfdbfe",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#2563eb",
-            fontSize: "1.5rem",
-            fontWeight: 800,
-          }}
-        >
-          {name ? name.charAt(0).toUpperCase() : "S"}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 700, color: "#0f172a" }}>
-              {name || "Student Name"}
-            </h2>
-            <span
-              style={{
-                fontSize: "0.75rem",
-                padding: "3px 10px",
-                borderRadius: "9999px",
-                backgroundColor: "#eff6ff",
-                color: "#2563eb",
-                fontWeight: 700,
-                border: "1px solid #bfdbfe",
-                textTransform: "uppercase",
-              }}
-            >
-              {role}
+    <main className="cf-profile-root">
+      <style>{profileStyles}</style>
+      <div className="cf-profile-container">
+        {/* Header Banner */}
+        <header className="cf-profile-header">
+          <div>
+            <span className="cf-profile-kicker">
+              <Sparkles size={12} /> Account & Records
             </span>
+            <h1>Student Profile</h1>
+            <p>
+              Manage your personal credentials, departmental affiliation, and semester standing.
+            </p>
           </div>
-          <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "0.85rem" }}>
-            {currentUser?.email} • {department || "Department Not Set"} • Semester {semester}
-          </p>
-        </div>
-      </div>
+        </header>
 
-      {/* Alerts */}
-      {message && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            padding: "0.875rem 1.25rem",
-            backgroundColor: "#ecfdf5",
-            color: "#065f46",
-            borderRadius: "10px",
-            marginBottom: "1.5rem",
-            border: "1px solid #a7f3d0",
-            fontSize: "0.9rem",
-          }}
-        >
-          <CheckCircle size={20} />
-          <span>{message}</span>
-        </div>
-      )}
-
-      {error && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            padding: "0.875rem 1.25rem",
-            backgroundColor: "#fef2f2",
-            color: "#991b1b",
-            borderRadius: "10px",
-            marginBottom: "1.5rem",
-            border: "1px solid #fecaca",
-            fontSize: "0.9rem",
-          }}
-        >
-          <AlertCircle size={20} />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {loading ? (
-        <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
-          <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>Loading profile information...</div>
-        </div>
-      ) : (
-        <form onSubmit={handleUpdateProfile}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: "1.5rem",
-              marginBottom: "2rem",
-            }}
-          >
-            {/* Account Credentials Card */}
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: "16px",
-                padding: "1.75rem 2rem",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 1.25rem 0",
-                  fontSize: "1.1rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                <Shield size={18} color="#2563eb" />
-                Account Credentials
-              </h3>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                {/* Email Address (Read-only) */}
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.4rem",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      color: "#334155",
-                    }}
-                  >
-                    Email Address (Linked Account)
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <Mail
-                      size={16}
-                      style={{
-                        position: "absolute",
-                        left: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "#94a3b8",
-                      }}
-                    />
-                    <input
-                      type="email"
-                      disabled
-                      value={currentUser?.email || ""}
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem 1rem 0.75rem 2.25rem",
-                        borderRadius: "8px",
-                        border: "1px solid #e2e8f0",
-                        backgroundColor: "#f8fafc",
-                        color: "#64748b",
-                        fontSize: "0.95rem",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Account Role (Read-only) */}
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.4rem",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      color: "#334155",
-                    }}
-                  >
-                    System Role
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <Shield
-                      size={16}
-                      style={{
-                        position: "absolute",
-                        left: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "#94a3b8",
-                      }}
-                    />
-                    <input
-                      type="text"
-                      disabled
-                      value={role.toUpperCase()}
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem 1rem 0.75rem 2.25rem",
-                        borderRadius: "8px",
-                        border: "1px solid #e2e8f0",
-                        backgroundColor: "#f8fafc",
-                        color: "#64748b",
-                        fontSize: "0.95rem",
-                        fontWeight: 600,
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Academic Information Card */}
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: "16px",
-                padding: "1.75rem 2rem",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 1.25rem 0",
-                  fontSize: "1.1rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                <GraduationCap size={18} color="#2563eb" />
-                Academic Information
-              </h3>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                {/* Full Name */}
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.4rem",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      color: "#334155",
-                    }}
-                  >
-                    Full Name *
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <User
-                      size={16}
-                      style={{
-                        position: "absolute",
-                        left: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "#94a3b8",
-                      }}
-                    />
-                    <input
-                      type="text"
-                      disabled={saving}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g., Hithesh"
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem 1rem 0.75rem 2.25rem",
-                        borderRadius: "8px",
-                        border: "1px solid #cbd5e1",
-                        fontSize: "0.95rem",
-                        color: "#0f172a",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Student ID */}
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.4rem",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      color: "#334155",
-                    }}
-                  >
-                    Student ID / Roll Number
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <IdCard
-                      size={16}
-                      style={{
-                        position: "absolute",
-                        left: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "#94a3b8",
-                      }}
-                    />
-                    <input
-                      type="text"
-                      disabled={saving}
-                      value={studentId}
-                      onChange={(e) => setStudentId(e.target.value)}
-                      placeholder="e.g., 1MS25CS042"
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem 1rem 0.75rem 2.25rem",
-                        borderRadius: "8px",
-                        border: "1px solid #cbd5e1",
-                        fontSize: "0.95rem",
-                        color: "#0f172a",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "1rem" }}>
-                  {/* Department */}
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.4rem",
-                        fontSize: "0.85rem",
-                        fontWeight: 600,
-                        color: "#334155",
-                      }}
-                    >
-                      Department / Major
-                    </label>
-                    <input
-                      type="text"
-                      disabled={saving}
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      placeholder="e.g., Computer Science"
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem 1rem",
-                        borderRadius: "8px",
-                        border: "1px solid #cbd5e1",
-                        fontSize: "0.95rem",
-                        color: "#0f172a",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-
-                  {/* Semester */}
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.4rem",
-                        fontSize: "0.85rem",
-                        fontWeight: 600,
-                        color: "#334155",
-                      }}
-                    >
-                      Semester
-                    </label>
-                    <select
-                      value={semester}
-                      disabled={saving}
-                      onChange={(e) => setSemester(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem 1rem",
-                        borderRadius: "8px",
-                        border: "1px solid #cbd5e1",
-                        backgroundColor: "#ffffff",
-                        fontSize: "0.95rem",
-                        color: "#0f172a",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                        <option key={sem} value={sem}>
-                          Semester {sem}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Profile Overview Hero Card */}
+        <section className="cf-profile-hero-card">
+          <div className="cf-profile-avatar">
+            {name ? name.charAt(0).toUpperCase() : "S"}
           </div>
 
-          {/* Submit Action Toolbar */}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div className="cf-profile-hero-meta">
+            <div className="cf-profile-hero-top">
+              <h2>{name || "Student Name"}</h2>
+              <span className="cf-profile-role-tag">
+                <Shield size={12} /> {role}
+              </span>
+            </div>
+            <div className="cf-profile-hero-details">
+              <span className="cf-profile-hero-item">
+                <Mail size={13} /> {currentUser?.email || "No email"}
+              </span>
+              <span className="cf-profile-hero-item">
+                <Building2 size={13} /> {department || "Department Not Set"}
+              </span>
+              <span className="cf-profile-hero-item">
+                <GraduationCap size={13} /> Semester {semester}
+              </span>
+              {studentId && (
+                <span className="cf-profile-hero-item">
+                  <IdCard size={13} /> {studentId}
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Success / Error Alerts */}
+        {message && (
+          <div className="cf-profile-alert cf-profile-alert-success" role="alert">
+            <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+            <span>{message}</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="cf-profile-alert cf-profile-alert-error" role="alert">
+            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="cf-profile-grid">
+            <div className="cf-profile-skeleton" />
+            <div className="cf-profile-skeleton" />
+          </div>
+        ) : (
+          <form onSubmit={handleUpdateProfile}>
+            <div className="cf-profile-grid">
+              {/* Account Credentials Card */}
+              <section className="cf-profile-section-card">
+                <h3 className="cf-profile-section-title">
+                  <Shield size={18} color="#2563eb" />
+                  Account Credentials
+                </h3>
+
+                <div className="cf-profile-form-stack">
+                  {/* Email Address (Read-only) */}
+                  <div className="cf-profile-field">
+                    <label>Email Address (Linked Account)</label>
+                    <div className="cf-profile-input-wrap">
+                      <Mail size={16} className="cf-profile-input-icon" />
+                      <input
+                        type="email"
+                        disabled
+                        value={currentUser?.email || ""}
+                        className="cf-profile-input"
+                        aria-label="Email Address"
+                      />
+                    </div>
+                  </div>
+
+                  {/* System Role (Read-only) */}
+                  <div className="cf-profile-field">
+                    <label>System Access Role</label>
+                    <div className="cf-profile-input-wrap">
+                      <Shield size={16} className="cf-profile-input-icon" />
+                      <input
+                        type="text"
+                        disabled
+                        value={role.toUpperCase()}
+                        className="cf-profile-input"
+                        aria-label="Access Role"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Academic Information Card */}
+              <section className="cf-profile-section-card">
+                <h3 className="cf-profile-section-title">
+                  <GraduationCap size={18} color="#2563eb" />
+                  Academic Information
+                </h3>
+
+                <div className="cf-profile-form-stack">
+                  {/* Full Name */}
+                  <div className="cf-profile-field">
+                    <label>Full Name *</label>
+                    <div className="cf-profile-input-wrap">
+                      <User size={16} className="cf-profile-input-icon" />
+                      <input
+                        type="text"
+                        disabled={saving}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g., Jane Doe"
+                        className="cf-profile-input"
+                        required
+                        aria-label="Full Name"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Student ID / USN */}
+                  <div className="cf-profile-field">
+                    <label>University Seat Number (USN) / Student ID</label>
+                    <div className="cf-profile-input-wrap">
+                      <IdCard size={16} className="cf-profile-input-icon" />
+                      <input
+                        type="text"
+                        disabled={saving}
+                        value={studentId}
+                        onChange={(e) => setStudentId(e.target.value)}
+                        placeholder="e.g., 1MS21CS042"
+                        className="cf-profile-input"
+                        aria-label="University Seat Number or Student ID"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Department / Branch */}
+                  <div className="cf-profile-field">
+                    <label>Department / Branch</label>
+                    <div className="cf-profile-input-wrap">
+                      <Building2 size={16} className="cf-profile-input-icon" />
+                      <input
+                        type="text"
+                        disabled={saving}
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        placeholder="e.g., Computer Science & Engineering"
+                        className="cf-profile-input"
+                        aria-label="Department or Branch"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Semester Standing */}
+                  <div className="cf-profile-field">
+                    <label>Current Semester</label>
+                    <div className="cf-profile-input-wrap">
+                      <Calendar size={16} className="cf-profile-input-icon" />
+                      <select
+                        disabled={saving}
+                        value={semester}
+                        onChange={(e) => setSemester(e.target.value)}
+                        className="cf-profile-select"
+                        aria-label="Current Semester"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                          <option key={sem} value={String(sem)}>
+                            Semester {sem}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
             <button
               type="submit"
               disabled={saving}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "0.85rem 2rem",
-                borderRadius: "10px",
-                border: "none",
-                backgroundColor: saving ? "#94a3b8" : "#2563eb",
-                color: "#ffffff",
-                fontWeight: 600,
-                fontSize: "0.95rem",
-                cursor: saving ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
-                transition: "all 0.15s ease",
-              }}
+              className="cf-profile-submit-btn"
             >
-              <Save size={18} />
-              {saving ? "Saving Profile..." : "Save Profile Details"}
+              <Save size={15} />
+              {saving ? "Saving Changes..." : "Save Profile Details"}
             </button>
-          </div>
-        </form>
-      )}
-    </div>
+          </form>
+        )}
+      </div>
+    </main>
   );
 }

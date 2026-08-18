@@ -1,3 +1,21 @@
+/* ===== CampusFlow Assignments UI/UX Upgrade ===== */
+const assignmentUXStyles = `
+.cf-page-container{max-width:1280px!important;margin:0 auto!important;padding:clamp(14px,3vw,32px)!important;background:radial-gradient(circle at 90% 0%,rgba(37,99,235,.07),transparent 28%),#f8fafc!important;min-height:100%!important}
+.cf-page-header{position:relative!important;overflow:hidden!important;padding:clamp(22px,4vw,34px)!important;border:1px solid #dbeafe!important;border-radius:24px!important;background:linear-gradient(135deg,#fff,#f8fbff 58%,#eff6ff)!important;box-shadow:0 10px 35px rgba(15,23,42,.055)!important;margin-bottom:18px!important}
+.cf-page-header:after{content:"";position:absolute;right:-100px;top:-120px;width:230px;height:230px;border-radius:50%;background:rgba(37,99,235,.08);pointer-events:none}
+.cf-page-header-title{gap:11px!important}.cf-page-header-icon{width:42px!important;height:42px!important;border-radius:13px!important;background:#dbeafe!important;color:#2563eb!important}.cf-page-header h1{font-size:clamp(1.55rem,3vw,2.2rem)!important;letter-spacing:-.035em!important}.cf-page-header p{max-width:700px!important;line-height:1.65!important;color:#64748b!important}
+.cf-stats-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin-bottom:18px!important}.cf-stat-card{padding:18px!important;border-radius:18px!important;border:1px solid #e2e8f0!important;background:#fff!important;box-shadow:0 5px 20px rgba(15,23,42,.035)!important;transition:.2s!important}.cf-stat-card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(15,23,42,.07)!important}.cf-stat-icon-wrap{width:46px!important;height:46px!important;border-radius:14px!important}.cf-stat-label{font-size:.76rem!important;font-weight:750!important}.cf-stat-value{font-size:1.35rem!important;font-weight:850!important}
+.cf-alert{border-radius:14px!important;padding:13px 15px!important;box-shadow:none!important}
+.cf-form-card{padding:clamp(18px,3vw,26px)!important;border-radius:20px!important;border:1px solid #e2e8f0!important;background:#fff!important;box-shadow:0 8px 28px rgba(15,23,42,.045)!important;margin-bottom:26px!important;scroll-margin-top:20px!important}.cf-form-card.is-editing{border-color:#93c5fd!important;box-shadow:0 10px 32px rgba(37,99,235,.1)!important}
+.cf-form-card input,.cf-form-card select,.cf-form-card textarea{border-radius:11px!important;border:1px solid #cbd5e1!important;transition:.18s!important}.cf-form-card input:focus,.cf-form-card select:focus,.cf-form-card textarea:focus{border-color:#60a5fa!important;box-shadow:0 0 0 4px rgba(37,99,235,.1)!important;outline:none!important}
+.cf-form-card .btn{border-radius:10px!important;min-height:40px!important;font-weight:750!important}
+.cf-cards-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(275px,1fr))!important;gap:14px!important}.cf-cards-grid>div{border-radius:19px!important;padding:18px!important;min-height:235px!important;box-shadow:0 5px 18px rgba(15,23,42,.035)!important;transition:transform .2s,box-shadow .2s,border-color .2s!important}.cf-cards-grid>div:hover{transform:translateY(-3px)!important;box-shadow:0 12px 28px rgba(15,23,42,.08)!important}
+.cf-cards-grid h4{font-size:1.03rem!important;line-height:1.4!important}.cf-cards-grid button{border-radius:9px!important;transition:.18s!important}.cf-cards-grid button:hover:not(:disabled){transform:translateY(-1px)}
+.cf-cards-grid [style*="borderTop"]{border-top:1px solid #f1f5f9!important}
+@keyframes cfShimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+@media(max-width:950px){.cf-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:560px){.cf-page-container{padding:12px!important}.cf-page-header{border-radius:18px!important}.cf-stats-grid{grid-template-columns:1fr!important}.cf-cards-grid{grid-template-columns:1fr!important}.cf-page-header .btn{width:100%!important}}
+`;
 // src/pages/Assignments.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -259,7 +277,7 @@ export default function Assignments() {
     setError("");
   };
 
-  // 5. Submit Form (Create or Update)
+  // 5. Create or Update Assignment
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -273,7 +291,8 @@ export default function Assignments() {
     const validation = validateAssignment({
       title,
       subjectId: selectedSubjectId,
-      dueDate: deadline,
+      deadline,
+      priority,
     });
 
     if (!validation.isValid) {
@@ -283,43 +302,42 @@ export default function Assignments() {
 
     const targetSubject = subjects.find((s) => s.id === selectedSubjectId);
     const subjectName = targetSubject ? targetSubject.name : "Subject";
-    const cleanDescription = (description || "").trim();
 
     setSubmitting(true);
 
     try {
       if (editingId) {
-        const assignmentRef = doc(db, "assignments", editingId);
-        await updateDoc(assignmentRef, {
+        const docRef = doc(db, "assignments", editingId);
+        await updateDoc(docRef, {
           title: validation.sanitized.title,
           subjectId: selectedSubjectId,
           subjectName: subjectName,
-          description: cleanDescription,
-          deadline: validation.sanitized.dueDate,
-          dueDate: validation.sanitized.dueDate,
-          priority: priority,
+          description: description.trim(),
+          deadline: validation.sanitized.deadline,
+          dueDate: validation.sanitized.deadline,
+          priority: validation.sanitized.priority,
           userId: currentUser.uid,
           updatedAt: serverTimestamp(),
         });
 
-        setSuccess(`Assignment "${validation.sanitized.title}" updated successfully!`);
+        setSuccess(`Assignment "${validation.sanitized.title}" updated.`);
         handleCancelEdit();
       } else {
         await addDoc(collection(db, "assignments"), {
           title: validation.sanitized.title,
           subjectId: selectedSubjectId,
           subjectName: subjectName,
-          description: cleanDescription,
-          deadline: validation.sanitized.dueDate,
-          dueDate: validation.sanitized.dueDate,
-          priority: priority,
+          description: description.trim(),
+          deadline: validation.sanitized.deadline,
+          dueDate: validation.sanitized.deadline,
+          priority: validation.sanitized.priority,
           status: "Pending",
           userId: currentUser.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
-        setSuccess(`Assignment "${validation.sanitized.title}" added successfully!`);
+        setSuccess(`Assignment "${validation.sanitized.title}" added.`);
         setTitle("");
         setSelectedSubjectId("");
         setDescription("");
@@ -333,17 +351,20 @@ export default function Assignments() {
     }
   };
 
-  // 6. Mark Complete
-  const handleMarkComplete = async (assignmentId) => {
+  // 6. Toggle Assignment Completion Status
+  const handleToggleStatus = async (assignment) => {
     setError("");
-    setUpdatingId(assignmentId);
+    setSuccess("");
+
+    const newStatus = assignment.status === "Completed" ? "Pending" : "Completed";
+    setUpdatingId(assignment.id);
 
     try {
-      const assignmentRef = doc(db, "assignments", assignmentId);
-      await updateDoc(assignmentRef, {
-        status: "Completed",
+      const docRef = doc(db, "assignments", assignment.id);
+      await updateDoc(docRef, {
+        status: newStatus,
+        completedAt: newStatus === "Completed" ? serverTimestamp() : null,
         userId: currentUser.uid,
-        completedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
     } catch (err) {
@@ -437,913 +458,624 @@ export default function Assignments() {
   }, [assignments, searchTerm, statusFilter]);
 
   return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "100%",
-        padding: "2rem 2.5rem",
-        boxSizing: "border-box",
-        minHeight: "100%",
-      }}
-    >
-      {/* Top Banner Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-          paddingBottom: "1.5rem",
-          borderBottom: "1px solid #e2e8f0",
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+    <>
+      <style>{assignmentUXStyles}</style>
+      <div className="cf-page-container">
+        {/* Top Banner Header */}
+        <div className="cf-page-header">
+          <div className="cf-page-header-info">
+            <div className="cf-page-header-title">
+              <div className="cf-page-header-icon">
+                <ClipboardList size={20} />
+              </div>
+              <h1>Assignment Planner</h1>
+            </div>
+            <p>Track coursework, set submission priorities, and complete assignments before deadlines.</p>
+          </div>
+        </div>
+
+        {/* Analytics Summary Cards */}
+        <div className="cf-stats-grid">
+          {/* Total Assignments */}
+          <div className="cf-stat-card">
+            <div className="cf-stat-icon-wrap" style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", color: "#334155" }}>
+              <FileText size={22} />
+            </div>
+            <div className="cf-stat-meta">
+              <span className="cf-stat-label">Total Tasks</span>
+              <div className="cf-stat-value">{metrics.total}</div>
+            </div>
+          </div>
+
+          {/* Pending Tasks */}
+          <div className="cf-stat-card">
+            <div className="cf-stat-icon-wrap" style={{ backgroundColor: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb" }}>
+              <Clock size={22} />
+            </div>
+            <div className="cf-stat-meta">
+              <span className="cf-stat-label">Pending</span>
+              <div className="cf-stat-value" style={{ color: "#2563eb" }}>{metrics.pending}</div>
+            </div>
+          </div>
+
+          {/* Overdue Tasks */}
+          <div className="cf-stat-card">
+            <div className="cf-stat-icon-wrap" style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626" }}>
+              <Flame size={22} />
+            </div>
+            <div className="cf-stat-meta">
+              <span className="cf-stat-label">Overdue</span>
+              <div className="cf-stat-value" style={{ color: metrics.overdue > 0 ? "#dc2626" : "#0f172a" }}>
+                {metrics.overdue}
+              </div>
+            </div>
+          </div>
+
+          {/* Completed Tasks */}
+          <div className="cf-stat-card">
+            <div className="cf-stat-icon-wrap" style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#16a34a" }}>
+              <CheckCircle size={22} />
+            </div>
+            <div className="cf-stat-meta">
+              <span className="cf-stat-label">Completed</span>
+              <div className="cf-stat-value" style={{ color: "#16a34a" }}>{metrics.completed}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Alerts */}
+        {error && (
+          <div className="cf-alert cf-alert-error">
+            <AlertCircle size={20} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div className="cf-alert cf-alert-success">
+            <CheckCircle2 size={20} style={{ flexShrink: 0 }} />
+            <span>{success}</span>
+          </div>
+        )}
+
+        {/* Form Container */}
+        <div
+          ref={formRef}
+          className={`cf-form-card ${editingId ? "is-editing" : ""}`}
+        >
+          <div className="flex-between" style={{ marginBottom: "1.25rem" }}>
+            <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+              {editingId ? (
+                <>
+                  <Edit2 size={18} color="#2563eb" />
+                  Edit Assignment
+                </>
+              ) : (
+                <>
+                  <PlusCircle size={18} color="#2563eb" />
+                  Add New Assignment
+                </>
+              )}
+            </h3>
+
+            {editingId && (
+              <span className="badge badge-primary">
+                Editing Mode
+              </span>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit}>
             <div
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
-                backgroundColor: "#eff6ff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#2563eb",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
+                gap: "1.25rem",
+                marginBottom: "1.25rem",
               }}
             >
-              <ClipboardList size={22} />
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.4rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    color: "#334155",
+                  }}
+                >
+                  Assignment Title *
+                </label>
+                <input
+                  type="text"
+                  disabled={submitting}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Data Structures Lab Report"
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "0.95rem",
+                    color: "#1e293b",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.4rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    color: "#334155",
+                  }}
+                >
+                  Subject *
+                </label>
+                <select
+                  value={selectedSubjectId}
+                  onChange={(e) => setSelectedSubjectId(e.target.value)}
+                  disabled={submitting}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    backgroundColor: "#ffffff",
+                    fontSize: "0.95rem",
+                    color: "#1e293b",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <option value="">-- Select Subject --</option>
+                  {subjects.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.4rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    color: "#334155",
+                  }}
+                >
+                  Deadline Date *
+                </label>
+                <input
+                  type="date"
+                  disabled={submitting}
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    backgroundColor: "#ffffff",
+                    fontSize: "0.95rem",
+                    color: "#1e293b",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.4rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    color: "#334155",
+                  }}
+                >
+                  Priority Level *
+                </label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  disabled={submitting}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    backgroundColor: "#ffffff",
+                    fontSize: "0.95rem",
+                    color: "#1e293b",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <option value="High">🔴 High Priority</option>
+                  <option value="Medium">🟡 Medium Priority</option>
+                  <option value="Low">🟢 Low Priority</option>
+                </select>
+              </div>
             </div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "1.75rem",
-                fontWeight: "700",
-                color: "#0f172a",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Assignment Planner
-            </h1>
-          </div>
-          <p style={{ margin: 0, color: "#64748b", fontSize: "0.95rem" }}>
-            Track coursework, set submission priorities, and complete assignments before deadlines.
-          </p>
-        </div>
-      </div>
 
-      {/* Analytics Summary Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-        }}
-      >
-        {/* Total Assignments */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            padding: "1.35rem 1.5rem",
-            borderRadius: "14px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}
-        >
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              backgroundColor: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#334155",
-            }}
-          >
-            <FileText size={22} />
-          </div>
-          <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-              Total Tasks
-            </span>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a" }}>
-              {metrics.total}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.4rem",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  color: "#334155",
+                }}
+              >
+                Description & Notes (Optional)
+              </label>
+              <textarea
+                rows={2}
+                disabled={submitting}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add submission details, professor guidelines, or file links..."
+                style={{
+                  width: "100%",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.95rem",
+                  color: "#1e293b",
+                  outline: "none",
+                  backgroundColor: "#ffffff",
+                  boxSizing: "border-box",
+                  resize: "vertical",
+                }}
+              />
             </div>
-          </div>
-        </div>
 
-        {/* Pending Tasks */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            padding: "1.35rem 1.5rem",
-            borderRadius: "14px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}
-        >
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              backgroundColor: "#fffbeb",
-              border: "1px solid #fde68a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#d97706",
-            }}
-          >
-            <Clock size={22} />
-          </div>
-          <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-              Pending Tasks
-            </span>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#d97706" }}>
-              {metrics.pending}
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn btn-primary"
+              >
+                <Sparkles size={16} />
+                {submitting
+                  ? "Saving..."
+                  : editingId
+                    ? "Update Assignment"
+                    : "Add Assignment"}
+              </button>
+
+              {editingId && (
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={handleCancelEdit}
+                  className="btn btn-outline"
+                >
+                  <X size={16} />
+                  Cancel
+                </button>
+              )}
             </div>
-          </div>
+          </form>
         </div>
 
-        {/* Overdue Tasks */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            padding: "1.35rem 1.5rem",
-            borderRadius: "14px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}
-        >
+        {/* Task List Section */}
+        <div>
           <div
+            className="flex-between"
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              backgroundColor: "#fef2f2",
-              border: "1px solid #fecaca",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#dc2626",
-            }}
-          >
-            <Flame size={22} />
-          </div>
-          <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-              Overdue
-            </span>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: metrics.overdue > 0 ? "#dc2626" : "#0f172a" }}>
-              {metrics.overdue}
-            </div>
-          </div>
-        </div>
-
-        {/* Completed Tasks */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            padding: "1.35rem 1.5rem",
-            borderRadius: "14px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}
-        >
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              backgroundColor: "#f0fdf4",
-              border: "1px solid #bbf7d0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#16a34a",
-            }}
-          >
-            <CheckCircle size={22} />
-          </div>
-          <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
-              Completed
-            </span>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#16a34a" }}>
-              {metrics.completed}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Notifications / Feedback */}
-      {error && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            padding: "0.875rem 1.25rem",
-            backgroundColor: "#fef2f2",
-            color: "#991b1b",
-            borderRadius: "10px",
-            marginBottom: "1.5rem",
-            border: "1px solid #fecaca",
-            fontSize: "0.9rem",
-          }}
-        >
-          <AlertCircle size={20} />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {success && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            padding: "0.875rem 1.25rem",
-            backgroundColor: "#ecfdf5",
-            color: "#065f46",
-            borderRadius: "10px",
-            marginBottom: "1.5rem",
-            border: "1px solid #a7f3d0",
-            fontSize: "0.9rem",
-          }}
-        >
-          <CheckCircle2 size={20} />
-          <span>{success}</span>
-        </div>
-      )}
-
-      {/* Form Container */}
-      <div
-        ref={formRef}
-        style={{
-          backgroundColor: "#ffffff",
-          border: `1.5px solid ${editingId ? "#3b82f6" : "#e2e8f0"}`,
-          borderRadius: "16px",
-          padding: "1.75rem 2rem",
-          marginBottom: "2.5rem",
-          boxShadow: editingId
-            ? "0 8px 24px -4px rgba(59, 130, 246, 0.15)"
-            : "0 1px 3px rgba(0,0,0,0.03)",
-          transition: "all 0.2s ease",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1.25rem",
-          }}
-        >
-          <h3
-            style={{
-              margin: 0,
-              fontSize: "1.1rem",
-              fontWeight: 700,
-              color: "#1e293b",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            {editingId ? (
-              <>
-                <Edit2 size={18} color="#2563eb" />
-                Edit Assignment
-              </>
-            ) : (
-              <>
-                <PlusCircle size={18} color="#2563eb" />
-                Add New Assignment
-              </>
-            )}
-          </h3>
-
-          {editingId && (
-            <span
-              style={{
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: "#2563eb",
-                backgroundColor: "#eff6ff",
-                padding: "3px 10px",
-                borderRadius: "9999px",
-              }}
-            >
-              Editing Mode
-            </span>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "1.25rem",
+              flexWrap: "wrap",
+              gap: "1rem",
               marginBottom: "1.25rem",
             }}
           >
             <div>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "0.4rem",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  color: "#334155",
-                }}
-              >
-                Assignment Title *
-              </label>
-              <input
-                type="text"
-                disabled={submitting}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Data Structures Lab Report"
-                style={{
-                  width: "100%",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.95rem",
-                  color: "#1e293b",
-                  boxSizing: "border-box",
-                }}
-              />
+              <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#0f172a" }}>
+                Active Tasks
+              </h3>
+              <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                Showing {filteredAssignments.length} of {assignments.length} assignments
+              </span>
             </div>
 
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "0.4rem",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  color: "#334155",
-                }}
-              >
-                Subject *
-              </label>
+            {/* Search & Filter Bar */}
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", width: "100%", maxWidth: "440px" }}>
+              <div style={{ position: "relative", flex: 1, minWidth: "160px" }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: "absolute",
+                    left: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#94a3b8",
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search tasks..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem 0.75rem 0.5rem 2rem",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "0.85rem",
+                    backgroundColor: "#ffffff",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
               <select
-                value={selectedSubjectId}
-                onChange={(e) => setSelectedSubjectId(e.target.value)}
-                disabled={submitting}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 style={{
-                  width: "100%",
-                  padding: "0.75rem 1rem",
+                  padding: "0.5rem 0.75rem",
                   borderRadius: "8px",
                   border: "1px solid #cbd5e1",
-                  backgroundColor: "#ffffff",
-                  fontSize: "0.95rem",
-                  color: "#1e293b",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="">-- Select Subject --</option>
-                {subjects.map((sub) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "0.4rem",
                   fontSize: "0.85rem",
-                  fontWeight: 600,
-                  color: "#334155",
-                }}
-              >
-                Deadline Date *
-              </label>
-              <input
-                type="date"
-                disabled={submitting}
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.95rem",
-                  color: "#1e293b",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "0.4rem",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  color: "#334155",
-                }}
-              >
-                Priority Level
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                disabled={submitting}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
                   backgroundColor: "#ffffff",
-                  fontSize: "0.95rem",
-                  color: "#1e293b",
-                  boxSizing: "border-box",
+                  color: "#334155",
+                  fontWeight: 500,
                 }}
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                <option value="all">All Tasks</option>
+                <option value="pending">Pending</option>
+                <option value="overdue">Overdue</option>
+                <option value="completed">Completed</option>
               </select>
             </div>
           </div>
 
-          <div style={{ marginBottom: "1.5rem" }}>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "0.4rem",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                color: "#334155",
-              }}
-            >
-              Description / Notes (Optional)
-            </label>
-            <textarea
-              rows="3"
-              disabled={submitting}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add submission guidelines, textbook chapters, or reference links..."
-              style={{
-                width: "100%",
-                padding: "0.75rem 1rem",
-                borderRadius: "8px",
-                border: "1px solid #cbd5e1",
-                fontSize: "0.95rem",
-                color: "#1e293b",
-                boxSizing: "border-box",
-                fontFamily: "inherit",
-              }}
-            />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <button
-              type="submit"
-              disabled={submitting || subjects.length === 0}
-              style={{
-                padding: "0.75rem 1.5rem",
-                backgroundColor:
-                  submitting || subjects.length === 0
-                    ? "#94a3b8"
-                    : "#2563eb",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "0.9rem",
-                fontWeight: 600,
-                cursor:
-                  submitting || subjects.length === 0
-                    ? "not-allowed"
-                    : "pointer",
-                boxShadow: "0 2px 4px rgba(37, 99, 235, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              <Sparkles size={16} />
-              {submitting
-                ? "Saving..."
-                : editingId
-                ? "Update Assignment"
-                : "Add Assignment"}
-            </button>
-
-            {editingId && (
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={handleCancelEdit}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  padding: "0.75rem 1.25rem",
-                  backgroundColor: "#f8fafc",
-                  color: "#475569",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "8px",
-                  fontSize: "0.9rem",
-                  fontWeight: 600,
-                  cursor: submitting ? "not-allowed" : "pointer",
-                }}
-              >
-                <X size={16} />
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-
-      {/* Assignment Cards List */}
-      <div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "1rem",
-            marginBottom: "1.25rem",
-          }}
-        >
-          <div>
-            <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#0f172a" }}>
-              My Assignments
-            </h3>
-            <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-              Showing {filteredAssignments.length} of {assignments.length} assignments
-            </span>
-          </div>
-
-          {/* Search & Filter Toolbar */}
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <div style={{ position: "relative", minWidth: "240px" }}>
-              <Search
-                size={16}
-                style={{
-                  position: "absolute",
-                  left: "10px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "#94a3b8",
-                }}
-              />
-              <input
-                type="text"
-                placeholder="Search assignment or subject..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "0.5rem 0.75rem 0.5rem 2rem",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.85rem",
-                  backgroundColor: "#ffffff",
-                  boxSizing: "border-box",
-                }}
-              />
+          {/* Dynamic Card Grid */}
+          {loading ? (
+            <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+              <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>Loading assignments...</div>
             </div>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{
-                padding: "0.5rem 0.75rem",
-                borderRadius: "8px",
-                border: "1px solid #cbd5e1",
-                fontSize: "0.85rem",
-                backgroundColor: "#ffffff",
-                color: "#334155",
-                fontWeight: 500,
-              }}
-            >
-              <option value="all">All Assignments</option>
-              <option value="pending">Pending</option>
-              <option value="overdue">Overdue</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-        </div>
-
-        {loading ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
-            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>Loading assignments...</div>
-          </div>
-        ) : filteredAssignments.length === 0 ? (
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px dashed #cbd5e1",
-              borderRadius: "16px",
-              padding: "3.5rem 2rem",
-              textAlign: "center",
-            }}
-          >
+          ) : filteredAssignments.length === 0 ? (
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                margin: "0 auto 1rem auto",
-                borderRadius: "50%",
-                backgroundColor: "#f1f5f9",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#94a3b8",
+                backgroundColor: "#ffffff",
+                border: "1px dashed #cbd5e1",
+                borderRadius: "16px",
+                padding: "3rem 1.5rem",
+                textAlign: "center",
               }}
             >
-              <ClipboardList size={24} />
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  margin: "0 auto 1rem auto",
+                  borderRadius: "50%",
+                  backgroundColor: "#f1f5f9",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#94a3b8",
+                }}
+              >
+                <ClipboardList size={24} />
+              </div>
+              <h4 style={{ margin: "0 0 0.5rem 0", color: "#1e293b", fontSize: "1.1rem" }}>
+                {searchTerm || statusFilter !== "all"
+                  ? "No matching assignments found"
+                  : "No assignments added yet"}
+              </h4>
+              <p style={{ margin: 0, color: "#64748b", fontSize: "0.9rem" }}>
+                {searchTerm || statusFilter !== "all"
+                  ? "Try clearing your search query or adjusting status filters."
+                  : "Add assignments and course projects using the form above."}
+              </p>
             </div>
-            <h4 style={{ margin: "0 0 0.5rem 0", color: "#1e293b", fontSize: "1.1rem" }}>
-              {searchTerm || statusFilter !== "all"
-                ? "No matching assignments found"
-                : "No assignments recorded yet"}
-            </h4>
-            <p style={{ margin: 0, color: "#64748b", fontSize: "0.9rem" }}>
-              {searchTerm || statusFilter !== "all"
-                ? "Try clearing your search query or adjusting your status filters."
-                : "Add your semester assignments using the planner form above."}
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {filteredAssignments.map((item) => {
-              const prio = getPriorityStyle(item.priority);
-              const deadlineDateStr = item.deadline || item.dueDate || "";
-              const deadlineInfo = getDeadlineStatus(deadlineDateStr, item.status);
-              const isCompleted = item.status === "Completed";
-              const isUpdating = updatingId === item.id;
-              const isDeleting = deletingId === item.id;
-              const isBeingEdited = editingId === item.id;
+          ) : (
+            <div className="cf-cards-grid">
+              {filteredAssignments.map((assignment) => {
+                const isCompleted = assignment.status === "Completed";
+                const deadlineInfo = getDeadlineStatus(
+                  assignment.deadline || assignment.dueDate,
+                  assignment.status
+                );
+                const pStyle = getPriorityStyle(assignment.priority);
+                const isDeleting = deletingId === assignment.id;
+                const isUpdating = updatingId === assignment.id;
+                const isBeingEdited = editingId === assignment.id;
 
-              return (
-                <div
-                  key={item.id}
-                  style={{
-                    backgroundColor: "#ffffff",
-                    border: `1.5px solid ${
-                      isBeingEdited
-                        ? "#3b82f6"
-                        : deadlineInfo.isOverdue
-                        ? "#fecaca"
-                        : "#e2e8f0"
-                    }`,
-                    borderRadius: "14px",
-                    padding: "1.25rem 1.5rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "1.25rem",
-                    opacity: isCompleted || isDeleting ? 0.65 : 1,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  {/* Left Column: Info & Badges */}
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        flexWrap: "wrap",
-                        marginBottom: "6px",
-                      }}
-                    >
-                      <h4
-                        style={{
-                          margin: 0,
-                          fontSize: "1.05rem",
-                          fontWeight: 700,
-                          textDecoration: isCompleted ? "line-through" : "none",
-                          color: isCompleted ? "#64748b" : "#0f172a",
-                        }}
-                      >
-                        {item.title}
-                      </h4>
-
-                      {/* Subject Name */}
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          padding: "3px 8px",
-                          borderRadius: "6px",
-                          backgroundColor: "#f1f5f9",
-                          color: "#334155",
-                          fontWeight: 600,
-                          border: "1px solid #e2e8f0",
-                        }}
-                      >
-                        {item.subjectName}
-                      </span>
-
-                      {/* Priority Badge */}
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          padding: "3px 8px",
-                          borderRadius: "9999px",
-                          backgroundColor: prio.bg,
-                          color: prio.color,
-                          border: `1px solid ${prio.border}`,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {item.priority} Priority
-                      </span>
-
-                      {/* Deadline Status Badge */}
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          padding: "3px 8px",
-                          borderRadius: "9999px",
-                          backgroundColor: deadlineInfo.bgColor,
-                          color: deadlineInfo.color,
-                          border: `1px solid ${deadlineInfo.borderColor}`,
-                          fontWeight: 700,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        {deadlineInfo.isOverdue && <AlertTriangle size={12} />}
-                        {isCompleted && <CheckCircle2 size={12} />}
-                        {deadlineInfo.label}
-                      </span>
-                    </div>
-
-                    {item.description && (
-                      <p
-                        style={{
-                          margin: "0 0 6px 0",
-                          fontSize: "0.85rem",
-                          color: "#64748b",
-                          lineHeight: "1.4",
-                        }}
-                      >
-                        {item.description}
-                      </p>
-                    )}
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontSize: "0.8rem",
-                        color: "#64748b",
-                      }}
-                    >
-                      <Calendar size={13} />
-                      <span>Due: {deadlineDateStr || "N/A"}</span>
-                      <span style={{ margin: "0 4px" }}>•</span>
-                      <Clock size={13} />
-                      <span>
-                        Status:{" "}
-                        <strong
-                          style={{
-                            color: isCompleted ? "#16a34a" : "#d97706",
-                          }}
-                        >
-                          {item.status}
-                        </strong>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Actions */}
+                return (
                   <div
+                    key={assignment.id}
                     style={{
+                      backgroundColor: isCompleted ? "#f8fafc" : "#ffffff",
+                      border: `1.5px solid ${isBeingEdited ? "#3b82f6" : "#e2e8f0"}`,
+                      borderRadius: "14px",
+                      padding: "1.25rem",
                       display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      opacity: isDeleting ? 0.6 : 1,
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    {/* Mark Complete Button */}
-                    <button
-                      onClick={() => handleMarkComplete(item.id)}
-                      disabled={isCompleted || isUpdating || isDeleting || submitting}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "7px 14px",
-                        backgroundColor: isCompleted ? "#f1f5f9" : "#dcfce7",
-                        color: isCompleted ? "#94a3b8" : "#15803d",
-                        border: `1px solid ${
-                          isCompleted ? "#e2e8f0" : "#86efac"
-                        }`,
-                        borderRadius: "8px",
-                        fontSize: "0.8rem",
-                        fontWeight: 700,
-                        cursor:
-                          isCompleted || isUpdating || isDeleting || submitting
-                            ? "not-allowed"
-                            : "pointer",
-                      }}
-                    >
-                      {isCompleted ? (
-                        <>
-                          <Check size={14} />
-                          Completed
-                        </>
-                      ) : isUpdating ? (
-                        "Updating..."
-                      ) : (
-                        <>
-                          <Check size={14} />
-                          Complete
-                        </>
+                    <div>
+                      {/* Header Row: Subject & Priority Chip */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "0.6rem",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            color: "#2563eb",
+                            backgroundColor: "#eff6ff",
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #dbeafe",
+                          }}
+                        >
+                          {assignment.subjectName || "Subject"}
+                        </span>
+
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            fontWeight: 700,
+                            color: pStyle.color,
+                            backgroundColor: pStyle.bg,
+                            padding: "2px 7px",
+                            borderRadius: "6px",
+                            border: `1px solid ${pStyle.border}`,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {assignment.priority || "Medium"}
+                        </span>
+                      </div>
+
+                      {/* Assignment Title */}
+                      <h4
+                        style={{
+                          margin: "0 0 0.5rem 0",
+                          fontSize: "1.05rem",
+                          fontWeight: 700,
+                          color: isCompleted ? "#64748b" : "#0f172a",
+                          textDecoration: isCompleted ? "line-through" : "none",
+                          lineHeight: 1.35,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {assignment.title}
+                      </h4>
+
+                      {/* Description (Optional) */}
+                      {assignment.description && (
+                        <p
+                          style={{
+                            margin: "0 0 0.75rem 0",
+                            fontSize: "0.825rem",
+                            color: "#64748b",
+                            lineHeight: 1.45,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {assignment.description}
+                        </p>
                       )}
-                    </button>
 
-                    {/* Edit Button */}
-                    <button
-                      onClick={() => handleStartEdit(item)}
-                      disabled={isDeleting || submitting}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        padding: "7px 12px",
-                        backgroundColor: "#ffffff",
-                        color: "#334155",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: "8px",
-                        fontSize: "0.8rem",
-                        fontWeight: 600,
-                        cursor: isDeleting || submitting ? "not-allowed" : "pointer",
-                      }}
-                      title="Edit Assignment"
-                    >
-                      <Edit2 size={14} />
-                      Edit
-                    </button>
+                      {/* Deadline Chip */}
+                      <div style={{ marginBottom: "1rem" }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            color: deadlineInfo.color,
+                            backgroundColor: deadlineInfo.bgColor,
+                            border: `1px solid ${deadlineInfo.borderColor}`,
+                            padding: "3px 9px",
+                            borderRadius: "9999px",
+                          }}
+                        >
+                          {deadlineInfo.isOverdue ? (
+                            <AlertTriangle size={13} />
+                          ) : (
+                            <Calendar size={13} />
+                          )}
+                          {deadlineInfo.label}
+                        </span>
+                      </div>
+                    </div>
 
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => handleDelete(item)}
-                      disabled={isDeleting || submitting}
+                    {/* Actions Footer */}
+                    <div
                       style={{
-                        display: "inline-flex",
+                        display: "flex",
                         alignItems: "center",
-                        gap: "4px",
-                        padding: "7px 12px",
-                        backgroundColor: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        borderRadius: "8px",
-                        color: isDeleting ? "#cbd5e1" : "#dc2626",
-                        cursor: isDeleting || submitting ? "not-allowed" : "pointer",
-                        fontSize: "0.8rem",
-                        fontWeight: 600,
+                        justifyContent: "space-between",
+                        paddingTop: "0.75rem",
+                        borderTop: "1px solid #f1f5f9",
+                        gap: "0.5rem",
+                        flexWrap: "wrap",
                       }}
-                      title="Delete Assignment"
                     >
-                      <Trash2 size={14} /> {isDeleting ? "Removing..." : "Delete"}
-                    </button>
+                      {/* Toggle Status Button */}
+                      <button
+                        onClick={() => handleToggleStatus(assignment)}
+                        disabled={isUpdating || isDeleting}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          padding: "6px 12px",
+                          backgroundColor: isCompleted ? "#f1f5f9" : "#eff6ff",
+                          color: isCompleted ? "#475569" : "#2563eb",
+                          border: `1px solid ${isCompleted ? "#cbd5e1" : "#bfdbfe"}`,
+                          borderRadius: "8px",
+                          fontSize: "0.8rem",
+                          fontWeight: 700,
+                          cursor: isUpdating || isDeleting ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        <Check size={14} />
+                        {isCompleted ? "Mark Pending" : "Mark Done"}
+                      </button>
+
+                      <div style={{ display: "flex", gap: "0.35rem" }}>
+                        <button
+                          onClick={() => handleStartEdit(assignment)}
+                          disabled={isUpdating || isDeleting}
+                          className="btn btn-outline"
+                          style={{ padding: "6px 10px", fontSize: "0.8rem" }}
+                          title="Edit Task"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(assignment)}
+                          disabled={isUpdating || isDeleting}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            padding: "6px 10px",
+                            backgroundColor: "#fef2f2",
+                            color: "#dc2626",
+                            border: "1px solid #fecaca",
+                            borderRadius: "8px",
+                            fontSize: "0.8rem",
+                            cursor: isUpdating || isDeleting ? "not-allowed" : "pointer",
+                          }}
+                          title="Delete Task"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

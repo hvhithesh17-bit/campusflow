@@ -155,27 +155,4 @@ export function validateStudyGoal(data) {
       targetHours: Number(targetHours.toFixed(1))
     }
   };
-}
-
-/**
- * Validates AI Assistant Queries.
- */
-export function validateAiPrompt(prompt) {
-  const cleanPrompt = (prompt || "").trim();
-
-  if (!cleanPrompt) {
-    return { isValid: false, error: "Please enter a question or topic for the AI assistant." };
-  }
-  if (cleanPrompt.length < 3) {
-    return { isValid: false, error: "Prompt is too short. Please provide more detail." };
-  }
-  if (cleanPrompt.length > 2000) {
-    return { isValid: false, error: "Prompt exceeds maximum allowed character limit (2000)." };
-  }
-
-  return {
-    isValid: true,
-    error: null,
-    sanitizedPrompt: cleanPrompt
-  };
-}
+}

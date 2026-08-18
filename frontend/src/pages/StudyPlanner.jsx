@@ -1,5 +1,4 @@
 // src/pages/StudyPlanner.jsx
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   addDoc,
@@ -12,170 +11,99 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-
 import { useLocation } from "react-router-dom";
-
 import {
   AlertCircle,
-  BookOpen,
   Calendar,
   CalendarDays,
   Check,
   CheckCircle,
   CheckCircle2,
-  Clock,
+  Clock, // Added missing Clock import
   Plus,
   Sparkles,
   Timer,
   Trash2,
   Target,
 } from "lucide-react";
-
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-
 import {
   generateStudyRecommendations,
   getTodayDateString,
 } from "../utils/studyRecommendations";
-
 import { validateStudySession } from "../utils/validation";
 import { formatFirebaseError } from "../utils/errorHandler";
-
 import SmartRecommendations from "../components/studyPlanner/SmartRecommendations";
 
 export default function StudyPlanner() {
   const { currentUser } = useAuth();
   const location = useLocation();
-
   const formRef = useRef(null);
 
-  // ============================================================
-  // FIRESTORE DATA
-  // ============================================================
-
+  // Firestore Data State
   const [subjects, setSubjects] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [studySessions, setStudySessions] = useState([]);
   const [studyGoals, setStudyGoals] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
-  // ============================================================
-  // MESSAGES
-  // ============================================================
-
+  // Messages
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // ============================================================
-  // FORM
-  // ============================================================
-
+  // Form State
   const [subjectId, setSubjectId] = useState("");
   const [subjectName, setSubjectName] = useState("");
-
   const [topic, setTopic] = useState("");
-
   const [date, setDate] = useState(() => getTodayDateString());
-
   const [startTime, setStartTime] = useState("18:00");
-
   const [duration, setDuration] = useState(60);
-
   const [priority, setPriority] = useState("Medium");
-
-  // Optional data received from SGPA Calculator.
   const [sgpaPrefill, setSgpaPrefill] = useState(null);
-
   const [submitting, setSubmitting] = useState(false);
 
-  // ============================================================
-  // ACTION STATES
-  // ============================================================
-
+  // Action States
   const [updatingId, setUpdatingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-
-  // ============================================================
-  // FILTER
-  // ============================================================
-
   const [filterTab, setFilterTab] = useState("all");
-
-  // ============================================================
-  // CLEAR SUCCESS MESSAGE
-  // ============================================================
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const showSuccess = (message) => {
     setSuccessMsg(message);
-
     setTimeout(() => {
       setSuccessMsg("");
     }, 3500);
   };
 
-  // ============================================================
-  // PREFILL FORM FROM OTHER PAGE
-  // Supports SGPA -> Study Planner connection.
-  // ============================================================
-
+  // Prefill Form from SGPA / Other Pages
   useEffect(() => {
     const prefill = location.state?.prefill;
-
     if (!prefill) {
       setSgpaPrefill(null);
       return;
     }
 
-    // Keep the SGPA recommendation available for the banner.
     setSgpaPrefill(prefill.source === "sgpa" ? prefill : null);
 
-    if (prefill.subjectId) {
-      setSubjectId(prefill.subjectId);
-    }
-
-    if (prefill.subjectName) {
-      setSubjectName(prefill.subjectName);
-    }
-
-    if (prefill.topic) {
-      setTopic(prefill.topic);
-    }
-
-    if (prefill.duration) {
-      setDuration(Number(prefill.duration));
-    }
-
-    if (prefill.priority) {
-      setPriority(prefill.priority);
-    }
-
+    if (prefill.subjectId) setSubjectId(prefill.subjectId);
+    if (prefill.subjectName) setSubjectName(prefill.subjectName);
+    if (prefill.topic) setTopic(prefill.topic);
+    if (prefill.duration) setDuration(Number(prefill.duration));
+    if (prefill.priority) setPriority(prefill.priority);
     setDate(getTodayDateString());
 
     setTimeout(() => {
       if (formRef.current) {
-        formRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 100);
 
-    // Clear route state after reading it so browser refresh/back
-    // does not repeatedly prefill the form.
-    window.history.replaceState(
-      {},
-      document.title,
-      window.location.href
-    );
+    window.history.replaceState({}, document.title, window.location.href);
   }, [location.state]);
 
-  // ============================================================
-  // FIRESTORE REAL-TIME LISTENERS
-  // ============================================================
-
+  // Firestore Real-Time Listeners
   useEffect(() => {
     if (!currentUser?.uid) {
       setSubjects([]);
@@ -184,7 +112,6 @@ export default function StudyPlanner() {
       setStudySessions([]);
       setStudyGoals([]);
       setLoading(false);
-
       return;
     }
 
@@ -192,293 +119,134 @@ export default function StudyPlanner() {
     setError("");
 
     const userId = currentUser.uid;
-
-    const subjectsQuery = query(
-      collection(db, "subjects"),
-      where("userId", "==", userId)
-    );
-
-    const attendanceQuery = query(
-      collection(db, "attendance"),
-      where("userId", "==", userId)
-    );
-
-    const assignmentsQuery = query(
-      collection(db, "assignments"),
-      where("userId", "==", userId)
-    );
-
-    const studySessionsQuery = query(
-      collection(db, "studySessions"),
-      where("userId", "==", userId)
-    );
-
-    const studyGoalsQuery = query(
-      collection(db, "studyGoals"),
-      where("userId", "==", userId)
-    );
+    const qSubjects = query(collection(db, "subjects"), where("userId", "==", userId));
+    const qAttendance = query(collection(db, "attendance"), where("userId", "==", userId));
+    const qAssignments = query(collection(db, "assignments"), where("userId", "==", userId));
+    const qStudySessions = query(collection(db, "studySessions"), where("userId", "==", userId));
+    const qStudyGoals = query(collection(db, "studyGoals"), where("userId", "==", userId));
 
     let loadedCount = 0;
-
     const markLoaded = () => {
       loadedCount += 1;
-
-      if (loadedCount >= 5) {
-        setLoading(false);
-      }
+      if (loadedCount >= 5) setLoading(false);
     };
 
-    const handleSnapshotError = (err) => {
-      console.error("Firestore listener error:", err);
-
-      setError(formatFirebaseError(err));
-
-      markLoaded();
-    };
-
-    // SUBJECTS
-    const unsubscribeSubjects = onSnapshot(
-      subjectsQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map((document) => ({
-          id: document.id,
-          ...document.data(),
-        }));
-
-        setSubjects(data);
-
+    const unsubSub = onSnapshot(
+      qSubjects,
+      (s) => {
+        setSubjects(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         markLoaded();
       },
-      handleSnapshotError
+      () => markLoaded()
     );
 
-    // ATTENDANCE
-    const unsubscribeAttendance = onSnapshot(
-      attendanceQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map((document) => ({
-          id: document.id,
-          ...document.data(),
-        }));
-
-        setAttendance(data);
-
+    const unsubAtt = onSnapshot(
+      qAttendance,
+      (s) => {
+        setAttendance(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         markLoaded();
       },
-      handleSnapshotError
+      () => markLoaded()
     );
 
-    // ASSIGNMENTS
-    const unsubscribeAssignments = onSnapshot(
-      assignmentsQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map((document) => ({
-          id: document.id,
-          ...document.data(),
-        }));
-
-        setAssignments(data);
-
+    const unsubAsg = onSnapshot(
+      qAssignments,
+      (s) => {
+        setAssignments(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         markLoaded();
       },
-      handleSnapshotError
+      () => markLoaded()
     );
 
-    // STUDY SESSIONS
-    const unsubscribeStudySessions = onSnapshot(
-      studySessionsQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map((document) => ({
-          id: document.id,
-          ...document.data(),
-        }));
-
-        setStudySessions(data);
-
+    const unsubStd = onSnapshot(
+      qStudySessions,
+      (s) => {
+        setStudySessions(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         markLoaded();
       },
-      handleSnapshotError
+      () => markLoaded()
     );
 
-    // STUDY GOALS
-    const unsubscribeStudyGoals = onSnapshot(
-      studyGoalsQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map((document) => ({
-          id: document.id,
-          ...document.data(),
-        }));
-
-        setStudyGoals(data);
-
+    const unsubGol = onSnapshot(
+      qStudyGoals,
+      (s) => {
+        setStudyGoals(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         markLoaded();
       },
-      handleSnapshotError
+      () => markLoaded()
     );
 
     return () => {
-      unsubscribeSubjects();
-      unsubscribeAttendance();
-      unsubscribeAssignments();
-      unsubscribeStudySessions();
-      unsubscribeStudyGoals();
+      unsubSub();
+      unsubAtt();
+      unsubAsg();
+      unsubStd();
+      unsubGol();
     };
   }, [currentUser]);
 
-  // ============================================================
-  // SMART RECOMMENDATIONS
-  // ============================================================
-
+  // Dynamic Recommendations
   const recommendations = useMemo(() => {
-    try {
-      return generateStudyRecommendations({
-        subjects,
-        attendance,
-        assignments,
-        studySessions,
-        studyGoals,
-      });
-    } catch (err) {
-      console.error("Recommendation generation error:", err);
+    return generateStudyRecommendations({
+      subjects,
+      attendance,
+      assignments,
+      studySessions,
+      studyGoals,
+    });
+  }, [subjects, attendance, assignments, studySessions, studyGoals]);
 
-      return [];
+  const handleSelectRecommendation = (rec) => {
+    if (!rec) return;
+    if (rec.subjectId) setSubjectId(rec.subjectId);
+    if (rec.subjectName) setSubjectName(rec.subjectName);
+    if (rec.suggestedTopic) setTopic(rec.suggestedTopic);
+    if (rec.recommendedDurationMinutes) setDuration(Number(rec.recommendedDurationMinutes));
+    if (rec.priority) {
+      setPriority(rec.priority === "HIGH" ? "High" : "Medium");
     }
-  }, [
-    subjects,
-    attendance,
-    assignments,
-    studySessions,
-    studyGoals,
-  ]);
-
-  // ============================================================
-  // SELECT RECOMMENDATION
-  // ============================================================
-
-  const handleSelectRecommendation = (recommendation) => {
-    setError("");
-
-    setSubjectId(recommendation.subjectId || "");
-
-    setSubjectName(recommendation.subjectName || "");
-
-    setTopic(
-      recommendation.subjectName
-        ? `Priority Review: ${recommendation.subjectName}`
-        : "Priority Review"
-    );
-
     setDate(getTodayDateString());
 
-    setDuration(
-      Number(recommendation.recommendedMinutes) || 60
-    );
-
-    if (recommendation.priority === "HIGH") {
-      setPriority("High");
-    } else if (recommendation.priority === "LOW") {
-      setPriority("Low");
-    } else {
-      setPriority("Medium");
-    }
-
-    setTimeout(() => {
-      if (formRef.current) {
-        formRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, 100);
-  };
-
-  // ============================================================
-  // SUBJECT DROPDOWN
-  // ============================================================
-
-  const handleSubjectChange = (event) => {
-    const selectedId = event.target.value;
-
-    setSubjectId(selectedId);
-
-    const selectedSubject = subjects.find(
-      (subject) => subject.id === selectedId
-    );
-
-    if (selectedSubject) {
-      setSubjectName(
-        selectedSubject.name ||
-          selectedSubject.subjectName ||
-          ""
-      );
-    } else {
-      setSubjectName("");
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
-  // ============================================================
-  // CREATE STUDY SESSION
-  // ============================================================
+  const handleSubjectDropdownChange = (e) => {
+    const sId = e.target.value;
+    setSubjectId(sId);
+    const selected = subjects.find((s) => s.id === sId);
+    setSubjectName(selected ? selected.name : "");
+  };
 
-  const handleCreateSession = async (event) => {
-    event.preventDefault();
-
+  const handleCreateSession = async (e) => {
+    e.preventDefault();
     setError("");
     setSuccessMsg("");
 
     if (!currentUser?.uid) {
-      setError(
-        "You must be logged in to schedule a study session."
-      );
-
+      setError("You must be logged in to schedule a study session.");
       return;
     }
 
-    if (!subjectId) {
-      setError("Please select a subject.");
-
-      return;
-    }
-
-    if (!topic.trim()) {
-      setError("Please enter a topic or study goal.");
-
-      return;
-    }
-
-    if (!date) {
-      setError("Please select a study date.");
-
-      return;
-    }
-
-    const numericDuration = Number(duration);
-
-    if (
-      Number.isNaN(numericDuration) ||
-      numericDuration < 15 ||
-      numericDuration > 360
-    ) {
-      setError(
-        "Duration must be between 15 and 360 minutes."
-      );
-
-      return;
-    }
-
+    const numericDuration = Number(duration) || 60;
     const validation = validateStudySession({
-      subjectId,
+      subjectId: subjectId.trim(),
       topic: topic.trim(),
-      durationMinutes: numericDuration,
       date,
+      durationMinutes: numericDuration,
+      priority,
     });
 
     if (!validation.isValid) {
-      setError(
-        validation.error || "Invalid study session."
-      );
-
+      setError(validation.error);
       return;
+    }
+
+    let finalSubjectName = subjectName.trim();
+    if (!finalSubjectName) {
+      const match = subjects.find((s) => s.id === subjectId);
+      finalSubjectName = match ? match.name : "Subject";
     }
 
     setSubmitting(true);
@@ -486,1311 +254,537 @@ export default function StudyPlanner() {
     try {
       await addDoc(collection(db, "studySessions"), {
         userId: currentUser.uid,
-
-        subjectId,
-
-        subjectName:
-          subjectName || "General Study",
-
-        topic: validation.sanitized?.topic || topic.trim(),
-
-        date:
-          validation.sanitized?.date || date,
-
+        subjectId: subjectId.trim(),
+        subjectName: finalSubjectName,
+        topic: topic.trim(),
+        date: date || getTodayDateString(),
         startTime: startTime || "18:00",
-
-        durationMinutes:
-          Number(
-            validation.sanitized?.durationMinutes
-          ) || numericDuration,
-
+        durationMinutes: numericDuration,
         priority: priority || "Medium",
-
-        // Optional academic context from SGPA Calculator.
         source: sgpaPrefill?.source || "study-planner",
-
-        targetIA2:
-          sgpaPrefill?.targetIA2 != null
-            ? Number(sgpaPrefill.targetIA2)
-            : null,
-
-        ia1Marks:
-          sgpaPrefill?.ia1 != null
-            ? Number(sgpaPrefill.ia1)
-            : null,
-
-        academicRisk:
-          sgpaPrefill?.risk || null,
-
+        targetIA2: sgpaPrefill?.targetIA2 != null ? Number(sgpaPrefill.targetIA2) : null,
+        ia1Marks: sgpaPrefill?.ia1 != null ? Number(sgpaPrefill.ia1) : null,
+        academicRisk: sgpaPrefill?.risk || null,
         status: "Scheduled",
-
         createdAt: serverTimestamp(),
-
         updatedAt: serverTimestamp(),
       });
 
-      showSuccess(
-        `Study session "${topic.trim()}" scheduled successfully!`
-      );
-
-      // Reset only necessary fields
+      showSuccess(`Study session "${topic.trim()}" scheduled successfully!`);
+      setSubjectId("");
+      setSubjectName("");
       setTopic("");
       setDuration(60);
       setPriority("Medium");
       setStartTime("18:00");
       setSgpaPrefill(null);
     } catch (err) {
-      console.error(
-        "Error creating study session:",
-        err
-      );
-
+      console.error("Error creating study session:", err);
       setError(formatFirebaseError(err));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ============================================================
-  // TOGGLE COMPLETE / SCHEDULED
-  // ============================================================
-
   const handleToggleStatus = async (session) => {
     setError("");
     setSuccessMsg("");
 
-    if (!currentUser?.uid) {
-      setError("You must be logged in.");
-
+    if (!currentUser?.uid || session.userId !== currentUser.uid) {
+      setError("Unauthorized action.");
       return;
     }
 
-    if (session.userId !== currentUser.uid) {
-      setError(
-        "Unauthorized: You can only update your own study sessions."
-      );
-
-      return;
-    }
-
-    const newStatus =
-      session.status === "Completed"
-        ? "Scheduled"
-        : "Completed";
-
+    const newStatus = session.status === "Completed" ? "Scheduled" : "Completed";
     setUpdatingId(session.id);
 
     try {
-      const sessionRef = doc(
-        db,
-        "studySessions",
-        session.id
-      );
-
+      const sessionRef = doc(db, "studySessions", session.id);
       await updateDoc(sessionRef, {
         status: newStatus,
-
-        completedAt:
-          newStatus === "Completed"
-            ? serverTimestamp()
-            : null,
-
+        completedAt: newStatus === "Completed" ? serverTimestamp() : null,
         updatedAt: serverTimestamp(),
       });
 
-      if (newStatus === "Completed") {
-        showSuccess(
-          `"${session.topic}" marked as completed!`
-        );
-      } else {
-        showSuccess(
-          `"${session.topic}" moved back to scheduled.`
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Error updating study session:",
-        err
+      showSuccess(
+        newStatus === "Completed"
+          ? `"${session.topic}" marked as completed!`
+          : `"${session.topic}" moved back to scheduled.`
       );
-
+    } catch (err) {
       setError(formatFirebaseError(err));
     } finally {
       setUpdatingId(null);
     }
   };
 
-  // ============================================================
-  // DELETE SESSION
-  // ============================================================
-
-  const handleDeleteSession = async (session) => {
+  const handleDeleteSession = (session) => {
     setError("");
     setSuccessMsg("");
 
-    if (!currentUser?.uid) {
-      setError("You must be logged in.");
-
+    if (!currentUser?.uid || session.userId !== currentUser.uid) {
+      setError("Unauthorized action.");
       return;
     }
 
-    if (session.userId !== currentUser.uid) {
-      setError(
-        "Unauthorized: You can only delete your own study sessions."
-      );
+    setDeleteTarget(session);
+  };
 
-      return;
-    }
+  const confirmDeleteSession = async () => {
+    if (!deleteTarget) return;
 
-    const confirmed = window.confirm(
-      `Delete study session "${session.topic}"?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+    const session = deleteTarget;
     setDeletingId(session.id);
 
     try {
-      const sessionRef = doc(
-        db,
-        "studySessions",
-        session.id
-      );
-
+      const sessionRef = doc(db, "studySessions", session.id);
       await deleteDoc(sessionRef);
-
-      showSuccess("Study session deleted successfully.");
+      showSuccess(`"${session.topic}" deleted successfully.`);
     } catch (err) {
-      console.error(
-        "Error deleting study session:",
-        err
-      );
-
       setError(formatFirebaseError(err));
     } finally {
       setDeletingId(null);
+      setDeleteTarget(null);
     }
   };
 
-  // ============================================================
-  // METRICS
-  // ============================================================
-
+  // Metrics
   const metrics = useMemo(() => {
     const today = getTodayDateString();
+    const todaySessions = studySessions.filter((s) => s.date === today);
+    const completedSessions = studySessions.filter((s) => s.status === "Completed");
 
-    const todaySessions = studySessions.filter(
-      (session) => session.date === today
-    );
-
-    const completedSessions = studySessions.filter(
-      (session) => session.status === "Completed"
-    );
-
-    const totalMinutes = studySessions.reduce(
-      (total, session) => {
-        const minutes = Number(
-          session.durationMinutes ||
-            session.duration ||
-            0
-        );
-
-        return total + (Number.isNaN(minutes) ? 0 : minutes);
-      },
-      0
-    );
+    const totalMinutes = studySessions.reduce((total, s) => {
+      const mins = Number(s.durationMinutes || s.duration || 0);
+      return total + (Number.isNaN(mins) ? 0 : mins);
+    }, 0);
 
     const hours = Math.floor(totalMinutes / 60);
-
     const minutes = totalMinutes % 60;
-
     const completionRate =
       studySessions.length > 0
-        ? Math.round(
-            (completedSessions.length /
-              studySessions.length) *
-              100
-          )
+        ? Math.round((completedSessions.length / studySessions.length) * 100)
         : 0;
 
     return {
       todayCount: todaySessions.length,
-
       completedCount: completedSessions.length,
-
       totalTimeFormatted: `${hours}h ${minutes}m`,
-
       completionRate,
     };
   }, [studySessions]);
-
-  // ============================================================
-  // FILTER SESSIONS
-  // ============================================================
 
   const todayDateStr = getTodayDateString();
 
   const filteredSessions = useMemo(() => {
     return [...studySessions]
       .filter((session) => {
-        if (filterTab === "today") {
-          return session.date === todayDateStr;
-        }
-
-        if (filterTab === "upcoming") {
-          return (
-            session.date >= todayDateStr &&
-            session.status !== "Completed"
-          );
-        }
-
-        if (filterTab === "completed") {
-          return session.status === "Completed";
-        }
-
+        if (filterTab === "today") return session.date === todayDateStr;
+        if (filterTab === "upcoming")
+          return session.date >= todayDateStr && session.status !== "Completed";
+        if (filterTab === "completed") return session.status === "Completed";
         return true;
       })
       .sort((a, b) => {
-        // Completed sessions go last
-        if (
-          (a.status === "Completed") !==
-          (b.status === "Completed")
-        ) {
-          return a.status === "Completed" ? 1 : -1;
-        }
-
-        // Nearest date first
-        const dateComparison = (
-          a.date || ""
-        ).localeCompare(b.date || "");
-
-        if (dateComparison !== 0) {
-          return dateComparison;
-        }
-
-        // Earlier time first
-        return (
-          a.startTime || ""
-        ).localeCompare(b.startTime || "");
+        if (a.status !== b.status) return a.status === "Completed" ? 1 : -1;
+        const dateA = a.date || "";
+        const dateB = b.date || "";
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        return (a.startTime || "").localeCompare(b.startTime || "");
       });
-  }, [
-    studySessions,
-    filterTab,
-    todayDateStr,
-  ]);
+  }, [studySessions, filterTab, todayDateStr]);
 
-  // ============================================================
-  // PRIORITY BADGE
-  // ============================================================
-
-  const getPriorityBadge = (priorityValue) => {
-    switch (priorityValue) {
+  const getPriorityStyle = (lvl) => {
+    switch (lvl) {
       case "High":
-        return {
-          color: "#dc2626",
-          bg: "#fef2f2",
-          border: "#fecaca",
-        };
-
+        return { color: "#dc2626", bg: "#fef2f2", border: "#fecaca" };
       case "Low":
-        return {
-          color: "#16a34a",
-          bg: "#f0fdf4",
-          border: "#bbf7d0",
-        };
-
+        return { color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" };
       case "Medium":
       default:
-        return {
-          color: "#d97706",
-          bg: "#fffbeb",
-          border: "#fde68a",
-        };
+        return { color: "#d97706", bg: "#fffbeb", border: "#fde68a" };
     }
   };
 
-  // ============================================================
-  // NOT LOGGED IN
-  // ============================================================
-
-  if (!currentUser) {
-    return (
-      <div
-        style={{
-          padding: "3rem",
-          textAlign: "center",
-        }}
-      >
-        <AlertCircle
-          size={40}
-          color="#ef4444"
-        />
-
-        <h2>Please Login</h2>
-
-        <p>
-          Login to access your Study Planner.
-        </p>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // UI
-  // ============================================================
+  const plannerStyles = `
+  .planner-page{min-height:100%;padding:24px clamp(14px,3vw,32px) 40px;background:#f8fafc;color:#0f172a}
+  .planner-shell{max-width:1240px;margin:auto}
+  .planner-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:28px 30px;margin-bottom:16px;border:1px solid #dbeafe;border-radius:22px;background:linear-gradient(135deg,#fff 0%,#f8fbff 65%,#eff6ff 100%);box-shadow:0 8px 28px rgba(15,23,42,.05)}
+  .planner-kicker{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+  .planner-hero h1{margin:10px 0 6px;font-size:clamp(1.6rem,3vw,2.25rem);letter-spacing:-.04em}
+  .planner-hero p{margin:0;max-width:680px;color:#64748b;font-size:.86rem;line-height:1.65}
+  .planner-today{padding:12px 15px;border:1px solid #dbeafe;border-radius:14px;background:rgba(255,255,255,.8);white-space:nowrap}
+  .planner-today small{display:block;color:#64748b;font-size:.65rem;font-weight:800;text-transform:uppercase}.planner-today strong{display:block;margin-top:3px;color:#1e3a8a;font-size:.82rem}
+  .planner-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+  .planner-stat{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid #e2e8f0;border-radius:17px;background:#fff;box-shadow:0 4px 18px rgba(15,23,42,.035)}
+  .planner-stat-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:12px}
+  .planner-stat small{display:block;color:#64748b;font-size:.68rem;font-weight:750}.planner-stat strong{display:block;margin-top:2px;font-size:1.22rem;letter-spacing:-.025em}
+  .planner-alert{display:flex;gap:9px;align-items:flex-start;padding:12px 14px;margin-bottom:12px;border-radius:12px;font-size:.8rem}.planner-error{border:1px solid #fecaca;background:#fff5f5;color:#991b1b}.planner-success{border:1px solid #bbf7d0;background:#f0fdf4;color:#166534}.planner-alert button{margin-left:auto;border:0;background:transparent;color:inherit;font-size:17px;cursor:pointer}
+  .planner-recommend{margin-bottom:16px}
+  .planner-prefill{display:flex;gap:11px;padding:13px 15px;margin-bottom:16px;border:1px solid #bfdbfe;border-radius:15px;background:#eff6ff}.planner-prefill-icon{display:grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border-radius:10px;background:#dbeafe;color:#2563eb}.planner-prefill strong{font-size:.82rem;color:#1e3a8a}.planner-prefill p{margin:3px 0 0;color:#475569;font-size:.76rem;line-height:1.45}
+  .planner-form{padding:22px;margin-bottom:24px;border:1px solid #e2e8f0;border-radius:19px;background:#fff;box-shadow:0 7px 25px rgba(15,23,42,.04)}.planner-form h2{margin:0;color:#0f172a;font-size:1rem}.planner-form-sub{margin:4px 0 18px;color:#64748b;font-size:.74rem}
+  .planner-form-grid{display:grid;grid-template-columns:1.15fr 1.4fr 1fr 1fr 1fr;gap:11px}.planner-label{display:block;margin-bottom:6px;color:#334155;font-size:.71rem;font-weight:800}.planner-input{width:100%;height:43px;box-sizing:border-box;padding:0 10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;font:inherit;font-size:.8rem;outline:none}.planner-input:focus{border-color:#60a5fa;box-shadow:0 0 0 4px rgba(37,99,235,.09)}
+  .planner-primary{display:inline-flex;align-items:center;gap:7px;margin-top:14px;min-height:41px;padding:0 15px;border:0;border-radius:9px;background:#2563eb;color:#fff;font:inherit;font-size:.77rem;font-weight:800;cursor:pointer;box-shadow:0 6px 16px rgba(37,99,235,.18)}.planner-primary:hover{background:#1d4ed8}
+  .planner-list-head{display:flex;align-items:flex-end;justify-content:space-between;gap:15px;margin-bottom:13px}.planner-list-head h2{margin:0;font-size:1.16rem;letter-spacing:-.025em}.planner-list-head p{margin:4px 0 0;color:#64748b;font-size:.73rem}
+  .planner-tabs{display:flex;gap:3px;padding:4px;border:1px solid #e2e8f0;border-radius:10px;background:#f1f5f9}.planner-tab{padding:7px 11px;border:0;border-radius:7px;background:transparent;color:#64748b;font:inherit;font-size:.72rem;font-weight:700;cursor:pointer}.planner-tab.active{background:#fff;color:#2563eb;box-shadow:0 1px 4px rgba(15,23,42,.08)}
+  .planner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:13px}.planner-card{display:flex;flex-direction:column;min-height:225px;padding:17px;border:1px solid #e2e8f0;border-radius:17px;background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.035);transition:.18s}.planner-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(15,23,42,.07)}.planner-card.done{background:#f8fafc}
+  .planner-card-top{display:flex;justify-content:space-between;gap:8px}.planner-subject{max-width:68%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;border-radius:999px;background:#eff6ff;border:1px solid #dbeafe;color:#1d4ed8;font-size:.64rem;font-weight:800}.planner-priority{padding:5px 8px;border-radius:999px;font-size:.62rem;font-weight:800;text-transform:uppercase}
+  .planner-topic{margin:13px 0 10px;font-size:.97rem;line-height:1.4;letter-spacing:-.01em}.planner-topic.done{text-decoration:line-through;color:#64748b}.planner-meta{display:grid;grid-template-columns:1fr 1fr;gap:7px}.planner-meta-item{display:flex;align-items:center;gap:5px;padding:7px 8px;border-radius:8px;background:#f8fafc;border:1px solid #f1f5f9;color:#64748b;font-size:.68rem}
+  .planner-card-actions{display:flex;gap:7px;align-items:center;margin-top:auto;padding-top:12px;border-top:1px solid #f1f5f9}.planner-complete{flex:1;min-height:35px;border:1px solid #86efac;border-radius:8px;background:#dcfce7;color:#15803d;font:inherit;font-size:.7rem;font-weight:800;cursor:pointer}.planner-complete.done{border-color:#cbd5e1;background:#f8fafc;color:#475569}.planner-delete{width:35px;height:35px;border:1px solid #fecaca;border-radius:8px;background:#fff5f5;color:#dc2626;cursor:pointer}
+  .planner-empty{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:25px;border:1px dashed #cbd5e1;border-radius:17px;background:#fff}.planner-empty-icon{display:grid;place-items:center;width:52px;height:52px;margin-bottom:12px;border-radius:14px;background:#eff6ff;color:#3b82f6}.planner-empty h3{margin:0 0 5px;font-size:.95rem}.planner-empty p{margin:0;color:#64748b;font-size:.77rem}
+  .planner-skeletons{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:13px}.planner-skeleton{height:225px;border-radius:17px;background:linear-gradient(90deg,#eef2f7 25%,#f8fafc 50%,#eef2f7 75%);background-size:200% 100%;animation:plannerShimmer 1.2s infinite}@keyframes plannerShimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+  .planner-modal-backdrop{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.48);backdrop-filter:blur(4px)}.planner-modal{width:min(100%,410px);padding:22px;border-radius:18px;background:#fff;box-shadow:0 25px 60px rgba(15,23,42,.24)}.planner-modal-icon{display:grid;place-items:center;width:44px;height:44px;margin-bottom:12px;border-radius:12px;background:#fef2f2;color:#dc2626}.planner-modal h3{margin:0 0 6px;font-size:1rem}.planner-modal p{margin:0;color:#64748b;font-size:.8rem;line-height:1.5}.planner-modal-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:19px}.planner-cancel,.planner-confirm{min-height:38px;padding:0 12px;border-radius:8px;font:inherit;font-size:.73rem;font-weight:800;cursor:pointer}.planner-cancel{border:1px solid #cbd5e1;background:#fff;color:#334155}.planner-confirm{display:inline-flex;align-items:center;gap:6px;border:1px solid #fecaca;background:#fff5f5;color:#dc2626}
+  @media(max-width:1050px){.planner-form-grid{grid-template-columns:repeat(3,1fr)}.planner-form-grid>div:nth-child(2){grid-column:span 2}}@media(max-width:720px){.planner-hero{align-items:flex-start;flex-direction:column}.planner-stats{grid-template-columns:1fr}.planner-form-grid{grid-template-columns:1fr 1fr}.planner-form-grid>div:nth-child(2){grid-column:auto}.planner-list-head{align-items:stretch;flex-direction:column}.planner-tabs{width:max-content;max-width:100%;overflow:auto}}@media(max-width:500px){.planner-page{padding:12px}.planner-hero{padding:21px;border-radius:18px}.planner-form{padding:16px}.planner-form-grid{grid-template-columns:1fr}.planner-grid{grid-template-columns:1fr}.planner-tabs{width:100%}.planner-tab{flex:1}.planner-modal-actions{flex-direction:column-reverse}.planner-modal-actions button{width:100%}}
+`;
 
   return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "100%",
-        padding: "2rem 2.5rem",
-        boxSizing: "border-box",
-        minHeight: "100%",
-      }}
-    >
-      {/* ======================================================
-          HEADER
-      ====================================================== */}
+    <>
+      <style>{plannerStyles}</style>
+      <main className="planner-page">
+        <div className="planner-shell">
+          <section className="planner-hero">
+            <div>
+              <span className="planner-kicker">
+                <CalendarDays size={12} /> Academic Focus
+              </span>
+              <h1>Study Planner & Roadmap</h1>
+              <p>
+                Plan focused study sessions, follow smart recommendations, and achieve your academic targets with a clear daily routine.
+              </p>
+            </div>
+            <div className="planner-today">
+              <small>Today</small>
+              <strong>{todayDateStr}</strong>
+            </div>
+          </section>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-          paddingBottom: "1.5rem",
-          borderBottom: "1px solid #e2e8f0",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginBottom: "6px",
-            }}
-          >
-            <div
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
-                backgroundColor: "#eff6ff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#2563eb",
-              }}
-            >
-              <CalendarDays size={22} />
+          <section className="planner-stats">
+            <div className="planner-stat">
+              <div className="planner-stat-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
+                <Calendar size={19} />
+              </div>
+              <div>
+                <small>Today's Sessions</small>
+                <strong>{metrics.todayCount}</strong>
+              </div>
+            </div>
+            <div className="planner-stat">
+              <div className="planner-stat-icon" style={{ background: "#f8fafc", color: "#334155" }}>
+                <Timer size={19} />
+              </div>
+              <div>
+                <small>Planned Study Time</small>
+                <strong>{metrics.totalTimeFormatted}</strong>
+              </div>
+            </div>
+            <div className="planner-stat">
+              <div className="planner-stat-icon" style={{ background: "#f0fdf4", color: "#16a34a" }}>
+                <CheckCircle size={19} />
+              </div>
+              <div>
+                <small>Completion Rate</small>
+                <strong style={{ color: "#16a34a" }}>{metrics.completionRate}%</strong>
+              </div>
+            </div>
+          </section>
+
+          {error && (
+            <div className="planner-alert planner-error">
+              <AlertCircle size={17} />
+              <span>{error}</span>
+              <button onClick={() => setError("")}>×</button>
+            </div>
+          )}
+          {successMsg && (
+            <div className="planner-alert planner-success">
+              <CheckCircle2 size={17} />
+              <span>{successMsg}</span>
+              <button onClick={() => setSuccessMsg("")}>×</button>
+            </div>
+          )}
+
+          <div className="planner-recommend">
+            <SmartRecommendations
+              recommendations={recommendations}
+              onSelectRecommendation={handleSelectRecommendation}
+              loading={loading}
+            />
+          </div>
+
+          {sgpaPrefill && (
+            <div className="planner-prefill">
+              <div className="planner-prefill-icon">
+                <Target size={18} />
+              </div>
+              <div>
+                <strong>SGPA Recommendation Applied</strong>
+                <p>
+                  {sgpaPrefill.subjectName || "This subject"} needs priority attention.
+                  {sgpaPrefill.targetIA2 && ` Target IA-2: ${sgpaPrefill.targetIA2}/50.`}
+                  {sgpaPrefill.studyHours && ` Recommended: ${sgpaPrefill.studyHours} hrs/week.`}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <section ref={formRef} className="planner-form">
+            <h2>
+              <Sparkles size={17} color="#2563eb" style={{ verticalAlign: "-3px", marginRight: 7 }} />
+              Schedule a Study Session
+            </h2>
+            <p className="planner-form-sub">
+              Create a specific session with a subject, target, time and priority.
+            </p>
+            <form onSubmit={handleCreateSession}>
+              <div className="planner-form-grid">
+                <div>
+                  <label className="planner-label">Course / Subject *</label>
+                  <select
+                    className="planner-input"
+                    value={subjectId}
+                    onChange={handleSubjectDropdownChange}
+                    disabled={submitting}
+                    required
+                  >
+                    <option value="">Choose subject...</option>
+                    {subjects.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="planner-label">Study Topic / Target *</label>
+                  <input
+                    className="planner-input"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="e.g. Dynamic Programming & Trees"
+                    disabled={submitting}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="planner-label">Date *</label>
+                  <input
+                    className="planner-input"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    disabled={submitting}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="planner-label">Start Time</label>
+                  <input
+                    className="planner-input"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    disabled={submitting}
+                  />
+                </div>
+                <div>
+                  <label className="planner-label">Duration</label>
+                  <select
+                    className="planner-input"
+                    value={duration}
+                    onChange={(e) => setDuration(Number(e.target.value))}
+                    disabled={submitting}
+                  >
+                    <option value={30}>30 min · Sprint</option>
+                    <option value={45}>45 min · Focus</option>
+                    <option value={60}>60 min · Standard</option>
+                    <option value={90}>90 min · Deep Work</option>
+                    <option value={120}>120 min · Intensive</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ maxWidth: 220, marginTop: 12 }}>
+                <label className="planner-label">Priority</label>
+                <select
+                  className="planner-input"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  disabled={submitting}
+                >
+                  <option value="High">🔴 High Priority</option>
+                  <option value="Medium">🟡 Medium Priority</option>
+                  <option value="Low">🟢 Low Priority</option>
+                </select>
+              </div>
+              <button type="submit" className="planner-primary" disabled={submitting}>
+                <Plus size={15} />
+                {submitting ? "Adding Session..." : "Add Study Session"}
+              </button>
+            </form>
+          </section>
+
+          <section>
+            <div className="planner-list-head">
+              <div>
+                <h2>Study Schedule</h2>
+                <p>
+                  {filteredSessions.length} of {studySessions.length} sessions shown
+                </p>
+              </div>
+              <div className="planner-tabs">
+                {["all", "today", "upcoming", "completed"].map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    className={`planner-tab ${filterTab === tab ? "active" : ""}`}
+                    onClick={() => setFilterTab(tab)}
+                  >
+                    {tab === "all"
+                      ? "All"
+                      : tab === "today"
+                        ? "Today"
+                        : tab === "upcoming"
+                          ? "Upcoming"
+                          : "Completed"}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "1.75rem",
-                fontWeight: "700",
-                color: "#0f172a",
-              }}
-            >
-              Study Planner & Roadmap
-            </h1>
-          </div>
-
-          <p
-            style={{
-              margin: 0,
-              color: "#64748b",
-              fontSize: "0.95rem",
-            }}
-          >
-            Plan focused study sessions, follow smart
-            recommendations, and complete your study
-            targets.
-          </p>
-        </div>
-      </div>
-
-      {/* ======================================================
-          KPI CARDS
-      ====================================================== */}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-        }}
-      >
-        <MetricCard
-          icon={<Calendar size={22} />}
-          title="Sessions Today"
-          value={`${metrics.todayCount} planned`}
-        />
-
-        <MetricCard
-          icon={<Timer size={22} />}
-          title="Total Study Time"
-          value={metrics.totalTimeFormatted}
-        />
-
-        <MetricCard
-          icon={<CheckCircle size={22} />}
-          title="Completion Rate"
-          value={`${metrics.completionRate}% (${metrics.completedCount}/${studySessions.length})`}
-        />
-      </div>
-
-      {/* ======================================================
-          ERROR
-      ====================================================== */}
-
-      {error && (
-        <MessageBox
-          icon={<AlertCircle size={20} />}
-          background="#fef2f2"
-          border="#fecaca"
-          color="#991b1b"
-        >
-          {error}
-        </MessageBox>
-      )}
-
-      {/* ======================================================
-          SUCCESS
-      ====================================================== */}
-
-      {successMsg && (
-        <MessageBox
-          icon={<CheckCircle2 size={20} />}
-          background="#ecfdf5"
-          border="#a7f3d0"
-          color="#065f46"
-        >
-          {successMsg}
-        </MessageBox>
-      )}
-
-      {/* ======================================================
-          SMART RECOMMENDATIONS
-      ====================================================== */}
-
-      <div style={{ marginBottom: "2rem" }}>
-        <SmartRecommendations
-          recommendations={recommendations}
-          onSelectRecommendation={
-            handleSelectRecommendation
-          }
-          loading={loading}
-        />
-      </div>
-
-      {/* ======================================================
-          SGPA -> STUDY PLANNER CONNECTION
-      ====================================================== */}
-
-      {sgpaPrefill && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "12px",
-            padding: "14px 16px",
-            marginBottom: "1rem",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            borderRadius: "12px",
-            color: "#1e40af",
-          }}
-        >
-          <div
-            style={{
-              width: "34px",
-              height: "34px",
-              flexShrink: 0,
-              borderRadius: "9px",
-              background: "#dbeafe",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Target size={18} color="#2563eb" />
-          </div>
-
-          <div style={{ flex: 1 }}>
-            <strong
-              style={{
-                display: "block",
-                fontSize: "0.86rem",
-                color: "#1e3a8a",
-              }}
-            >
-              SGPA recommendation added
-            </strong>
-
-            <p
-              style={{
-                margin: "3px 0 0",
-                fontSize: "0.76rem",
-                color: "#475569",
-                lineHeight: 1.45,
-              }}
-            >
-              {sgpaPrefill.subjectName || "This subject"} needs attention.
-              {sgpaPrefill.targetIA2
-                ? ` Target IA-2: ${sgpaPrefill.targetIA2}/50.`
-                : ""}
-              {sgpaPrefill.studyHours
-                ? ` Recommended study: ${sgpaPrefill.studyHours} hrs/week.`
-                : ""}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================
-          CREATE FORM
-      ====================================================== */}
-
-      <div
-        ref={formRef}
-        id="study-session-form"
-        style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: "16px",
-          padding: "1.75rem 2rem",
-          marginBottom: "2.5rem",
-          boxShadow:
-            "0 1px 3px rgba(0,0,0,0.03)",
-        }}
-      >
-        <h3
-          style={{
-            margin: "0 0 1.25rem 0",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            color: "#1e293b",
-          }}
-        >
-          <Sparkles
-            size={18}
-            color="#2563eb"
-          />
-
-          Schedule Study Session
-        </h3>
-
-        <form onSubmit={handleCreateSession}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "1.25rem",
-              marginBottom: "1.5rem",
-            }}
-          >
-            {/* SUBJECT */}
-
-            <FormGroup label="Course / Subject *">
-              <select
-                value={subjectId}
-                onChange={handleSubjectChange}
-                disabled={submitting}
-                style={inputStyle}
-              >
-                <option value="">
-                  Select Enrolled Subject
-                </option>
-
-                {subjects.map((subject) => (
-                  <option
-                    key={subject.id}
-                    value={subject.id}
-                  >
-                    {subject.name ||
-                      subject.subjectName ||
-                      "Unnamed Subject"}
-                  </option>
+            {loading ? (
+              <div className="planner-skeletons">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div className="planner-skeleton" key={i} />
                 ))}
-              </select>
-            </FormGroup>
-
-            {/* TOPIC */}
-
-            <FormGroup label="Topic / Chapter / Goal *">
-              <input
-                type="text"
-                value={topic}
-                placeholder="e.g. Unit 3 Revision"
-                onChange={(event) =>
-                  setTopic(event.target.value)
-                }
-                disabled={submitting}
-                style={inputStyle}
-              />
-            </FormGroup>
-
-            {/* DATE */}
-
-            <FormGroup label="Date *">
-              <input
-                type="date"
-                value={date}
-                onChange={(event) =>
-                  setDate(event.target.value)
-                }
-                disabled={submitting}
-                style={inputStyle}
-              />
-            </FormGroup>
-
-            {/* TIME */}
-
-            <FormGroup label="Start Time">
-              <input
-                type="time"
-                value={startTime}
-                onChange={(event) =>
-                  setStartTime(event.target.value)
-                }
-                disabled={submitting}
-                style={inputStyle}
-              />
-            </FormGroup>
-
-            {/* DURATION */}
-
-            <FormGroup label="Duration (Minutes)">
-              <input
-                type="number"
-                min="15"
-                max="360"
-                step="15"
-                value={duration}
-                onChange={(event) =>
-                  setDuration(
-                    Number(event.target.value)
-                  )
-                }
-                disabled={submitting}
-                style={inputStyle}
-              />
-            </FormGroup>
-
-            {/* PRIORITY */}
-
-            <FormGroup label="Priority Level">
-              <select
-                value={priority}
-                onChange={(event) =>
-                  setPriority(event.target.value)
-                }
-                disabled={submitting}
-                style={inputStyle}
-              >
-                <option value="High">
-                  High Priority
-                </option>
-
-                <option value="Medium">
-                  Medium Priority
-                </option>
-
-                <option value="Low">
-                  Low Priority
-                </option>
-              </select>
-            </FormGroup>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-            }}
-          >
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "0.75rem 1.75rem",
-                borderRadius: "8px",
-                border: "none",
-                backgroundColor: submitting
-                  ? "#94a3b8"
-                  : "#2563eb",
-                color: "#ffffff",
-                fontWeight: 600,
-                cursor: submitting
-                  ? "not-allowed"
-                  : "pointer",
-              }}
-            >
-              <Plus size={16} />
-
-              {submitting
-                ? "Scheduling..."
-                : "Add to Schedule"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* ======================================================
-          SESSION HEADER + FILTERS
-      ====================================================== */}
-
-      <div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1.25rem",
-            flexWrap: "wrap",
-            gap: "1rem",
-          }}
-        >
-          <div>
-            <h3
-              style={{
-                margin: 0,
-                color: "#0f172a",
-              }}
-            >
-              Scheduled Study Sessions
-            </h3>
-
-            <span
-              style={{
-                fontSize: "0.85rem",
-                color: "#64748b",
-              }}
-            >
-              Showing {filteredSessions.length} of{" "}
-              {studySessions.length} total
-            </span>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              backgroundColor: "#f1f5f9",
-              padding: "3px",
-              borderRadius: "10px",
-              gap: "2px",
-            }}
-          >
-            {[
-              ["all", "All"],
-              ["today", "Today"],
-              ["upcoming", "Upcoming"],
-              ["completed", "Completed"],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() =>
-                  setFilterTab(id)
-                }
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: "8px",
-                  border: "none",
-
-                  backgroundColor:
-                    filterTab === id
-                      ? "#ffffff"
-                      : "transparent",
-
-                  color:
-                    filterTab === id
-                      ? "#2563eb"
-                      : "#64748b",
-
-                  fontWeight:
-                    filterTab === id
-                      ? 700
-                      : 500,
-
-                  cursor: "pointer",
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ====================================================
-            LOADING
-        ==================================================== */}
-
-        {loading ? (
-          <div
-            style={{
-              padding: "3rem",
-              textAlign: "center",
-              color: "#64748b",
-            }}
-          >
-            Loading study roadmap...
-          </div>
-        ) : filteredSessions.length === 0 ? (
-          /* ==================================================
-              EMPTY STATE
-          ================================================== */
-
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px dashed #cbd5e1",
-              borderRadius: "16px",
-              padding: "3.5rem 2rem",
-              textAlign: "center",
-            }}
-          >
-            <BookOpen
-              size={40}
-              color="#94a3b8"
-            />
-
-            <h4>
-              No study sessions in this view
-            </h4>
-
-            <p style={{ color: "#64748b" }}>
-              Schedule a session above or select a
-              smart recommendation.
-            </p>
-          </div>
-        ) : (
-          /* ==================================================
-              SESSION LIST
-          ================================================== */
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.85rem",
-            }}
-          >
-            {filteredSessions.map((session) => {
-              const isDone =
-                session.status === "Completed";
-
-              const isUpdating =
-                updatingId === session.id;
-
-              const isDeleting =
-                deletingId === session.id;
-
-              const isToday =
-                session.date === todayDateStr;
-
-              const badge =
-                getPriorityBadge(
-                  session.priority
-                );
-
-              return (
-                <div
-                  key={session.id}
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    alignItems: "center",
-                    gap: "1rem",
-                    flexWrap: "wrap",
-
-                    padding: "1rem 1.25rem",
-
-                    borderRadius: "12px",
-
-                    border: `1.5px solid ${
-                      isToday && !isDone
-                        ? "#bfdbfe"
-                        : "#e2e8f0"
-                    }`,
-
-                    backgroundColor: isDone
-                      ? "#f8fafc"
-                      : "#ffffff",
-
-                    opacity:
-                      isDone || isDeleting
-                        ? 0.65
-                        : 1,
-                  }}
-                >
-                  {/* SESSION INFO */}
-
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        gap: "8px",
-                        marginBottom: "6px",
-                      }}
-                    >
-                      <strong
-                        style={{
-                          color: isDone
-                            ? "#94a3b8"
-                            : "#0f172a",
-
-                          textDecoration: isDone
-                            ? "line-through"
-                            : "none",
-                        }}
-                      >
-                        {session.topic ||
-                          "Study Session"}
-                      </strong>
-
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          backgroundColor:
-                            "#f1f5f9",
-                          padding: "3px 8px",
-                          borderRadius: "999px",
-                        }}
-                      >
-                        {session.subjectName ||
-                          "General Study"}
-                      </span>
-
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          padding: "3px 8px",
-                          borderRadius: "999px",
-                          backgroundColor:
-                            badge.bg,
-                          color: badge.color,
-                          border: `1px solid ${badge.border}`,
-                        }}
-                      >
-                        {session.priority ||
-                          "Medium"}
-                      </span>
-
-                      {isToday && !isDone && (
-                        <span
-                          style={{
-                            fontSize:
-                              "0.75rem",
-                            padding:
-                              "3px 8px",
-                            borderRadius:
-                              "999px",
-                            backgroundColor:
-                              "#eff6ff",
-                            color: "#2563eb",
-                            fontWeight: 700,
-                          }}
-                        >
-                          Today
-                        </span>
-                      )}
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        gap: "6px",
-                        color: "#64748b",
-                        fontSize: "0.8rem",
-                      }}
-                    >
-                      <Calendar size={13} />
-
-                      <span>
-                        {session.date ||
-                          "No date"}
-                      </span>
-
-                      <span>•</span>
-
-                      <Clock size={13} />
-
-                      <span>
-                        {session.startTime ||
-                          "18:00"}{" "}
-                        (
-                        {session.durationMinutes ||
-                          session.duration ||
-                          60}{" "}
-                        min)
-                      </span>
-                    </div>
-
-                    {session.source === "sgpa" &&
-                      session.targetIA2 != null && (
-                        <div
-                          style={{
-                            marginTop: "6px",
-                            color: "#2563eb",
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                          }}
-                        >
-                          🎯 IA-2 target: {session.targetIA2}/50
-                          {session.ia1Marks != null
-                            ? ` • Current IA-1: ${session.ia1Marks}/50`
-                            : ""}
-                        </div>
-                      )}
-                  </div>
-
-                  {/* ACTIONS */}
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleToggleStatus(
-                          session
-                        )
-                      }
-                      disabled={
-                        isUpdating ||
-                        isDeleting
-                      }
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "7px 14px",
-                        borderRadius: "8px",
-
-                        border:
-                          "1px solid #bfdbfe",
-
-                        backgroundColor: isDone
-                          ? "#dcfce7"
-                          : "#eff6ff",
-
-                        color: isDone
-                          ? "#15803d"
-                          : "#1d4ed8",
-
-                        cursor:
-                          isUpdating ||
-                          isDeleting
-                            ? "not-allowed"
-                            : "pointer",
-                      }}
-                    >
-                      {isUpdating ? (
-                        "Updating..."
-                      ) : isDone ? (
-                        <>
-                          <Check size={14} />
-                          Done
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2
-                            size={14}
-                          />
-                          Mark Done
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      title="Delete Session"
-                      onClick={() =>
-                        handleDeleteSession(
-                          session
-                        )
-                      }
-                      disabled={
-                        isDeleting ||
-                        isUpdating
-                      }
-                      style={{
-                        padding: "7px",
-                        border: "none",
-                        background:
-                          "transparent",
-                        color: "#ef4444",
-                        cursor:
-                          isDeleting ||
-                          isUpdating
-                            ? "not-allowed"
-                            : "pointer",
-                      }}
-                    >
-                      <Trash2 size={17} />
-                    </button>
-                  </div>
+              </div>
+            ) : filteredSessions.length === 0 ? (
+              <div className="planner-empty">
+                <div className="planner-empty-icon">
+                  <CalendarDays size={23} />
                 </div>
-              );
-            })}
+                <h3>No study sessions in this view</h3>
+                <p>Schedule your first session above or choose from smart recommendations.</p>
+              </div>
+            ) : (
+              <div className="planner-grid">
+                {filteredSessions.map((session) => {
+                  const isCompleted = session.status === "Completed";
+                  const isDeleting = deletingId === session.id;
+                  const isUpdating = updatingId === session.id;
+                  const pStyle = getPriorityStyle(session.priority);
+                  return (
+                    <article
+                      className={`planner-card ${isCompleted ? "done" : ""}`}
+                      key={session.id}
+                    >
+                      <div>
+                        <div className="planner-card-top">
+                          <span className="planner-subject">
+                            {session.subjectName || "Subject"}
+                          </span>
+                          <span
+                            className="planner-priority"
+                            style={{
+                              color: pStyle.color,
+                              background: pStyle.bg,
+                              border: `1px solid ${pStyle.border}`,
+                            }}
+                          >
+                            {session.priority || "Medium"}
+                          </span>
+                        </div>
+                        <h3 className={`planner-topic ${isCompleted ? "done" : ""}`}>
+                          {session.topic}
+                        </h3>
+                        <div className="planner-meta">
+                          <div className="planner-meta-item">
+                            <Calendar size={12} />
+                            {session.date}
+                          </div>
+                          <div className="planner-meta-item">
+                            <Timer size={12} />
+                            {session.durationMinutes || session.duration || 60} min
+                          </div>
+                          <div className="planner-meta-item">
+                            <Clock size={12} />
+                            {session.startTime || "Flexible"}
+                          </div>
+                          <div className="planner-meta-item">
+                            <Target size={12} />
+                            {isCompleted ? "Completed" : "Planned"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="planner-card-actions">
+                        <button
+                          type="button"
+                          className={`planner-complete ${isCompleted ? "done" : ""}`}
+                          onClick={() => handleToggleStatus(session)}
+                          disabled={isUpdating || isDeleting}
+                        >
+                          <Check size={13} />
+                          {isCompleted ? "Mark Planned" : "Mark Complete"}
+                        </button>
+                        <button
+                          type="button"
+                          className="planner-delete"
+                          onClick={() => handleDeleteSession(session)}
+                          disabled={isUpdating || isDeleting}
+                          title="Delete session"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+
+      {deleteTarget && (
+        <div
+          className="planner-modal-backdrop"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDeleteTarget(null);
+          }}
+        >
+          <div
+            className="planner-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="planner-delete-title"
+          >
+            <div className="planner-modal-icon">
+              <Trash2 size={20} />
+            </div>
+            <h3 id="planner-delete-title">Delete study session?</h3>
+            <p>
+              <strong>{deleteTarget.topic}</strong> will be permanently removed from your study schedule.
+            </p>
+            <div className="planner-modal-actions">
+              <button
+                type="button"
+                className="planner-cancel"
+                onClick={() => setDeleteTarget(null)}
+                disabled={Boolean(deletingId)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="planner-confirm"
+                onClick={confirmDeleteSession}
+                disabled={Boolean(deletingId)}
+              >
+                <Trash2 size={13} />
+                {deletingId ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// REUSABLE COMPONENTS
-// ============================================================
-
-function MetricCard({
-  icon,
-  title,
-  value,
-}) {
-  return (
-    <div
-      style={{
-        backgroundColor: "#ffffff",
-        padding: "1.35rem 1.5rem",
-        borderRadius: "14px",
-        border: "1px solid #e2e8f0",
-        boxShadow:
-          "0 1px 3px rgba(0,0,0,0.03)",
-        display: "flex",
-        alignItems: "center",
-        gap: "1rem",
-      }}
-    >
-      <div
-        style={{
-          width: "48px",
-          height: "48px",
-          borderRadius: "12px",
-          backgroundColor: "#eff6ff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#2563eb",
-        }}
-      >
-        {icon}
-      </div>
-
-      <div>
-        <div
-          style={{
-            fontSize: "0.78rem",
-            color: "#64748b",
-            fontWeight: 600,
-            textTransform: "uppercase",
-          }}
-        >
-          {title}
         </div>
-
-        <div
-          style={{
-            marginTop: "3px",
-            fontSize: "1.35rem",
-            fontWeight: 700,
-            color: "#0f172a",
-          }}
-        >
-          {value}
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
-
-function MessageBox({
-  icon,
-  children,
-  background,
-  border,
-  color,
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "0.75rem",
-        padding: "0.875rem 1.25rem",
-        backgroundColor: background,
-        color,
-        borderRadius: "10px",
-        marginBottom: "1.5rem",
-        border: `1px solid ${border}`,
-      }}
-    >
-      {icon}
-
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function FormGroup({
-  label,
-  children,
-}) {
-  return (
-    <div>
-      <label
-        style={{
-          display: "block",
-          marginBottom: "0.4rem",
-          fontSize: "0.85rem",
-          fontWeight: 600,
-          color: "#334155",
-        }}
-      >
-        {label}
-      </label>
-
-      {children}
-    </div>
-  );
-}
-
-// ============================================================
-// INPUT STYLE
-// ============================================================
-
-const inputStyle = {
-  width: "100%",
-  padding: "0.75rem 1rem",
-  borderRadius: "8px",
-  border: "1px solid #cbd5e1",
-  backgroundColor: "#ffffff",
-  fontSize: "0.95rem",
-  color: "#1e293b",
-  boxSizing: "border-box",
-};

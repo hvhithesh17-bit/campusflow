@@ -12,15 +12,9 @@ import {
   Cell,
 } from "recharts";
 import {
-  ShieldAlert,
   ShieldCheck,
-  AlertTriangle,
-  Flame,
   ArrowRight,
   Sparkles,
-  CalendarCheck,
-  CheckSquare,
-  Bot,
   Plus,
   HelpCircle,
   AlertOctagon,
@@ -103,14 +97,6 @@ export default function AcademicRiskOverview({
           duration: sub.recommendedDuration,
           priority: sub.recommendedPriority,
         },
-      },
-    });
-  };
-
-  const handleAskAi = (subName) => {
-    navigate("/ai-assistant", {
-      state: {
-        prompt: `How can I improve my academic performance and study strategy for ${subName}?`,
       },
     });
   };
@@ -286,26 +272,6 @@ export default function AcademicRiskOverview({
               >
                 <Plus size={15} /> Create Study Session
               </button>
-
-              <button
-                type="button"
-                onClick={() => handleAskAi(aggregateMetrics.topRiskSubject.subjectName)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "8px 14px",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  backgroundColor: "#ffffff",
-                  color: "#334155",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                <Bot size={15} color="#8b5cf6" /> Ask CampusFlow AI
-              </button>
             </div>
           </div>
         ) : (
@@ -466,8 +432,8 @@ export default function AcademicRiskOverview({
 
                     {/* Action Toolbar */}
                     <td style={{ padding: "12px 8px", textAlign: "right" }}>
-                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", flexWrap: "wrap" }}>
-                        {(sub.riskLevel === "HIGH" || sub.riskLevel === "MEDIUM") && (
+                      <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                        {(sub.riskLevel === "HIGH" || sub.riskLevel === "MEDIUM") ? (
                           <button
                             type="button"
                             onClick={() => handleCreateStudySession(sub)}
@@ -487,27 +453,9 @@ export default function AcademicRiskOverview({
                           >
                             <Plus size={13} /> Session
                           </button>
+                        ) : (
+                          <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>—</span>
                         )}
-
-                        <button
-                          type="button"
-                          onClick={() => handleAskAi(sub.subjectName)}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            padding: "4px 8px",
-                            borderRadius: "6px",
-                            border: "1px solid #cbd5e1",
-                            backgroundColor: "#ffffff",
-                            color: "#475569",
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Bot size={13} color="#8b5cf6" /> Ask AI
-                        </button>
                       </div>
                     </td>
                   </tr>

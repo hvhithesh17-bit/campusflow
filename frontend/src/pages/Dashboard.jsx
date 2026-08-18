@@ -46,7 +46,6 @@ import {
   calculateOverallAttendance,
   calculateAssignmentStats,
   calculateTodayStudyStats,
-  calculateWeeklyStudyStats,
   calculateAcademicHealth,
   generateAcademicAlerts,
   getRecentActivity,
@@ -408,10 +407,6 @@ export default function Dashboard() {
     [studySessions]
   );
 
-  const weeklyStudy = useMemo(
-    () => safeCalculate(() => calculateWeeklyStudyStats(studySessions), []),
-    [studySessions]
-  );
 
   const healthData = useMemo(
     () =>

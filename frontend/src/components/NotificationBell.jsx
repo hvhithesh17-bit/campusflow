@@ -97,6 +97,7 @@ export default function NotificationBell({
     try {
       await markNotificationAsRead(id);
     } catch (error) {
+      console.error("Failed to mark notification as read:", error);
       setNotifications((prev) =>
         prev.map((item) => (item.id === id ? { ...item, read: false } : item))
       );
@@ -110,6 +111,7 @@ export default function NotificationBell({
     try {
       await markAllNotificationsAsRead(notifications);
     } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
       setNotifications(prev);
     }
   };
@@ -117,7 +119,7 @@ export default function NotificationBell({
   // 5. Item Click / Navigation
   const handleNotificationClick = (item) => {
     if (!item.read) {
-      handleMarkAsRead({ stopPropagation: () => {} }, item.id);
+      handleMarkAsRead({ stopPropagation: () => { } }, item.id);
     }
     if (item.targetRoute) {
       if (onNavigate) {

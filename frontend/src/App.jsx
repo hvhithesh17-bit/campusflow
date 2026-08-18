@@ -24,7 +24,6 @@ import Sgpa from "./pages/Sgpa";
 import StudyPlanner from "./pages/StudyPlanner";
 import Profile from "./pages/Profile";
 import Analytics from "./pages/Analytics";
-import AiAssistant from "./pages/AiAssistant";
 
 // Layout Components
 import Sidebar from "./components/Sidebar";
@@ -87,7 +86,6 @@ function App() {
 
             <Route path="/sgpa" element={<Sgpa />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/ai-assistant" element={<AiAssistant />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
 

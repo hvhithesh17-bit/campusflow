@@ -252,6 +252,11 @@ export function calculateAcademicHealth({ sgpaData, attendanceData, assignmentDa
     explanations.push(`You have ${assignmentData.overdue} overdue assignment(s).`);
   }
 
+  // Study Sessions Activity Check
+  if (studyData?.totalCount > 0 && studyData.progressPercentage < 50) {
+    explanations.push(`Daily study completion is at ${studyData.progressPercentage}%.`);
+  }
+
   score = Math.max(0, Math.min(100, score));
 
   let status = "Critical";
@@ -342,6 +347,20 @@ export function generateAcademicAlerts({ subjects, attendance, assignments, stud
     });
   }
 
+  // 5. Incomplete Study Goals
+  if (studyGoals && Array.isArray(studyGoals)) {
+    const activeGoals = studyGoals.filter((g) => g.status !== "Completed");
+    if (activeGoals.length > 3) {
+      alerts.push({
+        id: "goals_active_alert",
+        type: "study",
+        severity: "info",
+        title: "Active Study Goals",
+        message: `You have ${activeGoals.length} active academic milestones in progress.`,
+      });
+    }
+  }
+
   return alerts;
 }
 
@@ -361,6 +380,19 @@ export function getRecentActivity({ subjects, attendance, assignments, studySess
       });
     }
   });
+
+  if (attendance && Array.isArray(attendance)) {
+    attendance.forEach((att) => {
+      if (att.updatedAt?.toDate) {
+        activities.push({
+          id: `att_${att.id}`,
+          text: `Updated attendance: ${att.subjectName || "Course"} (${att.percentage || 0}%)`,
+          date: att.updatedAt.toDate(),
+          icon: "attendance",
+        });
+      }
+    });
+  }
 
   assignments.forEach((a) => {
     if (a.createdAt?.toDate) {

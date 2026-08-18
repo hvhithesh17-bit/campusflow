@@ -8,15 +8,14 @@ import { generateAcademicAlerts } from "../utils/dashboardUtils";
 import {
   Menu,
   Calculator,
-  Brain,
   LogOut,
   Bell,
-  X,
   AlertCircle,
   AlertTriangle,
   Info,
   CalendarCheck,
   CheckSquare,
+  Sparkles,
 } from "lucide-react";
 
 export default function Header({ pageTitle, onMenuClick }) {
@@ -104,145 +103,52 @@ export default function Header({ pageTitle, onMenuClick }) {
     .substring(0, 2)
     .toUpperCase();
 
+  const userName = currentUser?.displayName?.split(" ")[0] || "Profile";
+
   return (
-    <header
-      style={{
-        height: "64px",
-        backgroundColor: "#ffffff",
-        borderBottom: "1px solid #e2e8f0",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 1.5rem",
-        position: "sticky",
-        top: 0,
-        zIndex: 30,
-        boxSizing: "border-box",
-      }}
-    >
-      {/* Left: Mobile Toggle & Page Title */}
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+    <header className="cf-app-header">
+      {/* Left: Mobile Menu Toggle & Title */}
+      <div className="cf-header-left">
         <button
           type="button"
           onClick={onMenuClick}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "none",
-            border: "none",
-            color: "#475569",
-            cursor: "pointer",
-            padding: "6px",
-            borderRadius: "6px",
-          }}
+          className="cf-header-menu-btn"
           aria-label="Open navigation menu"
         >
           <Menu size={22} />
         </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span
-            style={{
-              fontSize: "1.1rem",
-              fontWeight: "700",
-              color: "#0f172a",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {formattedTitle}
-          </span>
+        {/* Mobile Brand indicator (shown on small screens) */}
+        <div className="cf-header-brand-wrap">
+          <span className="cf-header-brand-mark">C</span>
+        </div>
+
+        <div className="cf-header-title-wrap">
+          <span className="cf-header-title">{formattedTitle}</span>
         </div>
       </div>
 
-      {/* Right: Quick Action Launchers & Notification Hub */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        {/* Quick SGPA */}
-        <Link
-          to="/sgpa"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 12px",
-            borderRadius: "8px",
-            backgroundColor: "#eff6ff",
-            color: "#2563eb",
-            border: "1px solid #bfdbfe",
-            fontSize: "0.8rem",
-            fontWeight: "600",
-            textDecoration: "none",
-            transition: "all 0.15s ease",
-          }}
-        >
+      {/* Right: Quick Action Launchers, Notifications & Profile */}
+      <div className="cf-header-right">
+        {/* Quick SGPA link */}
+        <Link to="/sgpa" className="cf-header-sgpa-btn">
           <Calculator size={14} />
           <span>SGPA</span>
         </Link>
 
-        {/* Quick AI Action */}
-        <Link
-          to="/ai-assistant"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 12px",
-            borderRadius: "8px",
-            backgroundColor: "#faf5ff",
-            color: "#9333ea",
-            border: "1px solid #e9d5ff",
-            fontSize: "0.8rem",
-            fontWeight: "600",
-            textDecoration: "none",
-            transition: "all 0.15s ease",
-          }}
-        >
-          <Brain size={14} />
-          <span>Ask AI</span>
-        </Link>
-
-        {/* ========================================================= */}
-        {/* NOTIFICATION BELL & DROPDOWN CENTER */}
-        {/* ========================================================= */}
-        <div ref={notificationRef} style={{ position: "relative" }}>
+        {/* Notification Bell Popover */}
+        <div ref={notificationRef} className="cf-header-notify-wrap">
           <button
             type="button"
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
-              padding: "8px",
-              borderRadius: "8px",
-              border: "1px solid #e2e8f0",
-              backgroundColor: isNotificationsOpen ? "#f1f5f9" : "#ffffff",
-              color: alerts.length > 0 ? "#2563eb" : "#64748b",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
+            className={`cf-header-icon-btn ${isNotificationsOpen ? "is-open" : ""}`}
             title="Academic Notifications"
+            aria-label="Notifications"
+            aria-expanded={isNotificationsOpen}
           >
-            <Bell size={18} />
+            <Bell size={18} color={alerts.length > 0 ? "#2563eb" : "#64748b"} />
             {alerts.length > 0 && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: "-4px",
-                  right: "-4px",
-                  width: "18px",
-                  height: "18px",
-                  borderRadius: "50%",
-                  backgroundColor: "#dc2626",
-                  color: "#ffffff",
-                  fontSize: "0.65rem",
-                  fontWeight: "800",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "2px solid #ffffff",
-                }}
-              >
+              <span className="cf-header-notify-badge">
                 {alerts.length}
               </span>
             )}
@@ -250,66 +156,27 @@ export default function Header({ pageTitle, onMenuClick }) {
 
           {/* Dropdown Menu */}
           {isNotificationsOpen && (
-            <div
-              style={{
-                position: "absolute",
-                right: 0,
-                top: "calc(100% + 8px)",
-                width: "340px",
-                maxHeight: "420px",
-                backgroundColor: "#ffffff",
-                borderRadius: "14px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 12px 28px -4px rgba(15, 23, 42, 0.15)",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                zIndex: 60,
-              }}
-            >
+            <div className="cf-header-dropdown">
               {/* Dropdown Header */}
-              <div
-                style={{
-                  padding: "12px 16px",
-                  borderBottom: "1px solid #e2e8f0",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  backgroundColor: "#f8fafc",
-                }}
-              >
+              <div className="cf-header-dropdown-top">
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <Bell size={16} color="#2563eb" />
                   <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "#0f172a" }}>
                     Academic Alerts
                   </span>
                 </div>
-                <span
-                  style={{
-                    fontSize: "0.75rem",
-                    padding: "2px 8px",
-                    borderRadius: "9999px",
-                    backgroundColor: alerts.length > 0 ? "#eff6ff" : "#f1f5f9",
-                    color: alerts.length > 0 ? "#2563eb" : "#64748b",
-                    fontWeight: "700",
-                  }}
-                >
+                <span className="cf-header-dropdown-counter">
                   {alerts.length} {alerts.length === 1 ? "Alert" : "Alerts"}
                 </span>
               </div>
 
               {/* Alerts List */}
-              <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
+              <div className="cf-header-dropdown-body">
                 {alerts.length === 0 ? (
-                  <div
-                    style={{
-                      padding: "2rem 1rem",
-                      textAlign: "center",
-                      color: "#64748b",
-                      fontSize: "0.85rem",
-                    }}
-                  >
-                    ✨ All clear! No urgent academic alerts right now.
+                  <div className="cf-header-empty-alerts">
+                    <Sparkles size={24} color="#3b82f6" style={{ margin: "0 auto 8px" }} />
+                    <p style={{ margin: 0, fontWeight: "600", color: "#1e293b" }}>All Clear!</p>
+                    <p style={{ margin: "4px 0 0", fontSize: "0.78rem" }}>No urgent academic alerts right now.</p>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -320,46 +187,17 @@ export default function Header({ pageTitle, onMenuClick }) {
                       return (
                         <div
                           key={alt.id}
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: "8px",
-                            backgroundColor: isCrit
-                              ? "#fef2f2"
-                              : isWarn
-                              ? "#fffbeb"
-                              : "#eff6ff",
-                            border: `1px solid ${
-                              isCrit
-                                ? "#fecaca"
-                                : isWarn
-                                ? "#fde68a"
-                                : "#bfdbfe"
-                            }`,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "3px",
-                          }}
+                          className={`cf-header-alert-item ${
+                            isCrit ? "is-critical" : isWarn ? "is-warning" : "is-info"
+                          }`}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              fontSize: "0.8rem",
-                              fontWeight: "700",
-                              color: isCrit
-                                ? "#991b1b"
-                                : isWarn
-                                ? "#92400e"
-                                : "#1e40af",
-                            }}
-                          >
+                          <div className="cf-header-alert-item-title">
                             {isCrit && <AlertCircle size={14} />}
                             {isWarn && <AlertTriangle size={14} />}
                             {!isCrit && !isWarn && <Info size={14} />}
                             <span>{alt.title}</span>
                           </div>
-                          <div style={{ fontSize: "0.75rem", color: "#334155", lineHeight: 1.4 }}>
+                          <div className="cf-header-alert-item-msg">
                             {alt.message}
                           </div>
                         </div>
@@ -370,109 +208,41 @@ export default function Header({ pageTitle, onMenuClick }) {
               </div>
 
               {/* Direct Quick Links Footer */}
-              <div
-                style={{
-                  padding: "8px 12px",
-                  borderTop: "1px solid #e2e8f0",
-                  backgroundColor: "#f8fafc",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
+              <div className="cf-header-dropdown-footer">
                 <Link
                   to="/attendance"
                   onClick={() => setIsNotificationsOpen(false)}
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "#2563eb",
-                    textDecoration: "none",
-                    fontWeight: "600",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
+                  className="cf-header-dropdown-footer-link"
                 >
-                  <CalendarCheck size={12} /> Attendance
+                  <CalendarCheck size={13} /> Attendance
                 </Link>
                 <Link
                   to="/assignments"
                   onClick={() => setIsNotificationsOpen(false)}
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "#2563eb",
-                    textDecoration: "none",
-                    fontWeight: "600",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
+                  className="cf-header-dropdown-footer-link"
                 >
-                  <CheckSquare size={12} /> Assignments
+                  <CheckSquare size={13} /> Assignments
                 </Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* Profile Avatar Badge */}
-        <Link
-          to="/profile"
-          style={{
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "4px 8px 4px 4px",
-            borderRadius: "9999px",
-            backgroundColor: "#f8fafc",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              backgroundColor: "#2563eb",
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "0.75rem",
-              fontWeight: "700",
-            }}
-          >
+        {/* Profile Avatar Link */}
+        <Link to="/profile" className="cf-header-profile-link" title="My Profile">
+          <div className="cf-header-avatar">
             {userInitials}
           </div>
-          <span
-            style={{
-              fontSize: "0.85rem",
-              fontWeight: "600",
-              color: "#334155",
-              paddingRight: "4px",
-            }}
-          >
-            {currentUser?.displayName?.split(" ")[0] || "Profile"}
-          </span>
+          <span className="cf-header-username">{userName}</span>
         </Link>
 
         {/* Logout Button */}
         <button
           type="button"
           onClick={handleLogout}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "7px 10px",
-            borderRadius: "8px",
-            border: "1px solid #cbd5e1",
-            backgroundColor: "#ffffff",
-            color: "#64748b",
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-          }}
+          className="cf-header-logout-btn"
           title="Sign Out"
+          aria-label="Sign Out"
         >
           <LogOut size={16} />
         </button>

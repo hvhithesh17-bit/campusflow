@@ -1,6 +1,5 @@
 // src/components/Sidebar.jsx
-
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -12,16 +11,13 @@ import {
   LogOut,
   X,
   BarChart2,
-  Bot,
-  Menu,
   MoreHorizontal,
-  ChevronRight,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Sidebar.css";
 
-const NAV_ITEMS = [
+const NAV_MAIN_ITEMS = [
   {
     id: "dashboard",
     path: "/dashboard",
@@ -53,10 +49,14 @@ const NAV_ITEMS = [
   {
     id: "studyPlanner",
     path: "/study-planner",
+    aliases: ["/study-planner", "/planner", "/studyplanner"],
     label: "Study Planner",
     shortLabel: "Planner",
     icon: CalendarDays,
   },
+];
+
+const NAV_TOOL_ITEMS = [
   {
     id: "sgpa",
     path: "/sgpa",
@@ -71,13 +71,9 @@ const NAV_ITEMS = [
     shortLabel: "Analytics",
     icon: BarChart2,
   },
-  {
-    id: "ai-assistant",
-    path: "/ai-assistant",
-    label: "AI Assistant",
-    shortLabel: "AI",
-    icon: Bot,
-  },
+];
+
+const NAV_ACCOUNT_ITEMS = [
   {
     id: "profile",
     path: "/profile",
@@ -87,11 +83,17 @@ const NAV_ITEMS = [
   },
 ];
 
-const MOBILE_PRIMARY_IDS = [
-  "dashboard",
-  "subjects",
-  "studyPlanner",
-  "assignments",
+const ALL_NAV_ITEMS = [
+  ...NAV_MAIN_ITEMS,
+  ...NAV_TOOL_ITEMS,
+  ...NAV_ACCOUNT_ITEMS,
+];
+
+const MOBILE_BOTTOM_PRIMARY_ITEMS = [
+  NAV_MAIN_ITEMS[0], // Dashboard
+  NAV_MAIN_ITEMS[1], // Subjects
+  NAV_MAIN_ITEMS[2], // Attendance
+  NAV_MAIN_ITEMS[3], // Assignments
 ];
 
 const Sidebar = ({
@@ -104,17 +106,40 @@ const Sidebar = ({
   const location = useLocation();
   const { logout } = useAuth();
 
+  // Close drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen) {
+        setIsOpen?.(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, setIsOpen]);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   const activeItem = useMemo(() => {
     return (
-      NAV_ITEMS.find((item) => location.pathname === item.path) ||
-      NAV_ITEMS.find((item) => currentPage === item.id) ||
-      NAV_ITEMS[0]
+      ALL_NAV_ITEMS.find((item) => {
+        if (location.pathname === item.path) return true;
+        if (item.aliases && item.aliases.includes(location.pathname)) return true;
+        return false;
+      }) ||
+      ALL_NAV_ITEMS.find((item) => currentPage === item.id) ||
+      ALL_NAV_ITEMS[0]
     );
   }, [location.pathname, currentPage]);
-
-  const mobilePrimaryItems = NAV_ITEMS.filter((item) =>
-    MOBILE_PRIMARY_IDS.includes(item.id)
-  );
 
   const closeMobileMenu = () => {
     setIsOpen?.(false);
@@ -128,7 +153,7 @@ const Sidebar = ({
 
   const handleLogout = async () => {
     try {
-      await logout();
+      if (logout) await logout();
       setCurrentPage?.("login");
       closeMobileMenu();
       navigate("/login");
@@ -139,8 +164,9 @@ const Sidebar = ({
 
   const isItemActive = (item) => {
     if (location.pathname === item.path) return true;
+    if (item.aliases && item.aliases.includes(location.pathname)) return true;
 
-    // Keep nested routes active, but don't make "/" accidentally active.
+    // Keep nested paths active
     if (
       item.path !== "/dashboard" &&
       location.pathname.startsWith(`${item.path}/`)
@@ -154,48 +180,12 @@ const Sidebar = ({
   return (
     <>
       {/* =====================================================
-          MOBILE TOP BAR
+          MOBILE DRAWER BACKDROP OVERLAY
       ===================================================== */}
-      <header className="cf-sidebar-mobile-header">
-        <button
-          type="button"
-          className="cf-sidebar-icon-button"
-          onClick={() => setIsOpen?.(!isOpen)}
-          aria-label={isOpen ? "Close menu" : "Open menu"}
-          aria-expanded={isOpen}
-        >
-          {isOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-
-        <button
-          type="button"
-          className="cf-sidebar-mobile-brand"
-          onClick={() => handleNavigation(NAV_ITEMS[0])}
-          aria-label="Go to Dashboard"
-        >
-          <span className="cf-sidebar-brand-mark">C</span>
-          <span className="cf-sidebar-mobile-title">CampusFlow</span>
-        </button>
-
-        <button
-          type="button"
-          className="cf-sidebar-mobile-profile"
-          onClick={() => handleNavigation(NAV_ITEMS[NAV_ITEMS.length - 1])}
-          aria-label="Open profile"
-        >
-          <User size={19} />
-        </button>
-      </header>
-
-      {/* =====================================================
-          MOBILE OVERLAY
-      ===================================================== */}
-      <button
-        type="button"
+      <div
         className={`cf-sidebar-overlay ${isOpen ? "is-visible" : ""}`}
         onClick={closeMobileMenu}
-        aria-label="Close navigation"
-        tabIndex={isOpen ? 0 : -1}
+        aria-hidden={!isOpen}
       />
 
       {/* =====================================================
@@ -205,11 +195,12 @@ const Sidebar = ({
         className={`cf-sidebar ${isOpen ? "is-open" : ""}`}
         aria-label="Main navigation"
       >
+        {/* Brand Header */}
         <div className="cf-sidebar-header">
           <button
             type="button"
             className="cf-sidebar-brand"
-            onClick={() => handleNavigation(NAV_ITEMS[0])}
+            onClick={() => handleNavigation(NAV_MAIN_ITEMS[0])}
           >
             <span className="cf-sidebar-brand-mark">C</span>
 
@@ -223,21 +214,22 @@ const Sidebar = ({
             type="button"
             className="cf-sidebar-close"
             onClick={closeMobileMenu}
-            aria-label="Close menu"
+            aria-label="Close navigation menu"
           >
             <X size={20} />
           </button>
         </div>
 
+        {/* Workspace Pill */}
         <div className="cf-sidebar-current">
           <span className="cf-sidebar-current-dot" />
-          <span>Student workspace</span>
+          <span>Student Workspace</span>
         </div>
 
+        {/* Navigation Sections */}
         <nav className="cf-sidebar-nav">
           <p className="cf-sidebar-section-label">MAIN</p>
-
-          {NAV_ITEMS.slice(0, 5).map((item) => {
+          {NAV_MAIN_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = isItemActive(item);
 
@@ -245,14 +237,12 @@ const Sidebar = ({
               <button
                 key={item.id}
                 type="button"
-                className={`cf-sidebar-nav-item ${
-                  active ? "is-active" : ""
-                }`}
+                className={`cf-sidebar-nav-item ${active ? "is-active" : ""}`}
                 onClick={() => handleNavigation(item)}
                 aria-current={active ? "page" : undefined}
               >
                 <span className="cf-sidebar-nav-icon">
-                  <Icon size={19} strokeWidth={active ? 2.4 : 2} />
+                  <Icon size={18} strokeWidth={active ? 2.4 : 2} />
                 </span>
 
                 <span className="cf-sidebar-nav-label">
@@ -267,10 +257,9 @@ const Sidebar = ({
           })}
 
           <p className="cf-sidebar-section-label cf-sidebar-section-spaced">
-            TOOLS
+            TOOLS & ANALYTICS
           </p>
-
-          {NAV_ITEMS.slice(5, 8).map((item) => {
+          {NAV_TOOL_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = isItemActive(item);
 
@@ -278,14 +267,12 @@ const Sidebar = ({
               <button
                 key={item.id}
                 type="button"
-                className={`cf-sidebar-nav-item ${
-                  active ? "is-active" : ""
-                }`}
+                className={`cf-sidebar-nav-item ${active ? "is-active" : ""}`}
                 onClick={() => handleNavigation(item)}
                 aria-current={active ? "page" : undefined}
               >
                 <span className="cf-sidebar-nav-icon">
-                  <Icon size={19} strokeWidth={active ? 2.4 : 2} />
+                  <Icon size={18} strokeWidth={active ? 2.4 : 2} />
                 </span>
 
                 <span className="cf-sidebar-nav-label">
@@ -302,8 +289,7 @@ const Sidebar = ({
           <p className="cf-sidebar-section-label cf-sidebar-section-spaced">
             ACCOUNT
           </p>
-
-          {NAV_ITEMS.slice(8).map((item) => {
+          {NAV_ACCOUNT_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = isItemActive(item);
 
@@ -311,14 +297,12 @@ const Sidebar = ({
               <button
                 key={item.id}
                 type="button"
-                className={`cf-sidebar-nav-item ${
-                  active ? "is-active" : ""
-                }`}
+                className={`cf-sidebar-nav-item ${active ? "is-active" : ""}`}
                 onClick={() => handleNavigation(item)}
                 aria-current={active ? "page" : undefined}
               >
                 <span className="cf-sidebar-nav-icon">
-                  <Icon size={19} strokeWidth={active ? 2.4 : 2} />
+                  <Icon size={18} strokeWidth={active ? 2.4 : 2} />
                 </span>
 
                 <span className="cf-sidebar-nav-label">
@@ -333,6 +317,7 @@ const Sidebar = ({
           })}
         </nav>
 
+        {/* Footer */}
         <div className="cf-sidebar-footer">
           <button
             type="button"
@@ -340,23 +325,23 @@ const Sidebar = ({
             onClick={handleLogout}
           >
             <span className="cf-sidebar-nav-icon">
-              <LogOut size={19} />
+              <LogOut size={18} />
             </span>
-            <span>Logout</span>
+            <span>Sign Out</span>
           </button>
 
           <div className="cf-sidebar-version">
-            <span>CampusFlow</span>
+            <span>CampusFlow Hub</span>
             <span>v1.0</span>
           </div>
         </div>
       </aside>
 
       {/* =====================================================
-          MOBILE BOTTOM NAVIGATION
+          MOBILE BOTTOM NAVIGATION (Fixed at bottom on screens <= 768px)
       ===================================================== */}
-      <nav className="cf-mobile-bottom-nav" aria-label="Mobile navigation">
-        {mobilePrimaryItems.map((item) => {
+      <nav className="cf-mobile-bottom-nav" aria-label="Mobile Navigation">
+        {MOBILE_BOTTOM_PRIMARY_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isItemActive(item);
 
@@ -369,39 +354,29 @@ const Sidebar = ({
               aria-current={active ? "page" : undefined}
             >
               <span className="cf-mobile-nav-icon">
-                <Icon size={20} strokeWidth={active ? 2.5 : 2} />
+                <Icon size={19} strokeWidth={active ? 2.5 : 2} />
               </span>
               <span>{item.shortLabel}</span>
             </button>
           );
         })}
 
+        {/* More options button (opens full sidebar drawer) */}
         <button
           type="button"
-          className={`cf-mobile-nav-item ${
-            isOpen ? "is-active" : ""
-          }`}
+          className={`cf-mobile-nav-item ${isOpen ? "is-active" : ""}`}
           onClick={() => setIsOpen?.(!isOpen)}
-          aria-label="Open more navigation options"
+          aria-label="More navigation options"
           aria-expanded={isOpen}
         >
           <span className="cf-mobile-nav-icon">
-            <MoreHorizontal size={21} />
+            <MoreHorizontal size={20} />
           </span>
           <span>More</span>
         </button>
       </nav>
 
-      {/* =====================================================
-          MOBILE SPACERS
-          Prevent fixed navigation from covering page content.
-      ===================================================== */}
-      <div className="cf-mobile-top-spacer" aria-hidden="true" />
-      <div className="cf-mobile-bottom-spacer" aria-hidden="true" />
-
-      {/* =====================================================
-          ACTIVE PAGE ANNOUNCEMENT FOR SCREEN READERS
-      ===================================================== */}
+      {/* Screen Reader Announcement */}
       <span className="sr-only" aria-live="polite">
         {activeItem.label}
       </span>

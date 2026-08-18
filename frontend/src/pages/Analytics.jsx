@@ -1,29 +1,18 @@
 // src/pages/Analytics.jsx
-
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
-import {
-  collection,
-  onSnapshot,
-  query,
-  where,
-} from "firebase/firestore";
-
+import React, { useEffect, useMemo, useState } from "react";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import {
   BarChart2,
   AlertCircle,
   ShieldAlert,
+  Calendar,
+  Sparkles,
+  PieChart,
+  Layers,
 } from "lucide-react";
-
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-
 import { formatFirebaseError } from "../utils/errorHandler";
-
 import {
   calculateAcademicSummary,
   generateAnalyticsInsights,
@@ -37,90 +26,57 @@ import WeeklyStudyChart from "../components/analytics/WeeklyStudyChart";
 import SubjectPerformanceChart from "../components/analytics/SubjectPerformanceChart";
 import AssignmentStatusChart from "../components/analytics/AssignmentStatusChart";
 
-
-// ============================================================
-// ANALYTICS PAGE
-// ============================================================
-
 export default function Analytics() {
   const { currentUser } = useAuth();
 
-  // ==========================================================
-  // FIRESTORE DATA
-  // ==========================================================
-
+  // Firestore Data State
   const [subjects, setSubjects] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [studySessions, setStudySessions] = useState([]);
   const [studyGoals, setStudyGoals] = useState([]);
 
-  // ==========================================================
-  // UI STATE
-  // ==========================================================
-
+  // UI State
   const [dateFilter, setDateFilter] = useState("week");
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
 
-  // ==========================================================
-  // FIRESTORE LISTENERS
-  // ==========================================================
-
+  // Firestore Listeners
   useEffect(() => {
-    // If there is no authenticated user,
-    // don't keep the page stuck in loading state.
     if (!currentUser?.uid) {
       setSubjects([]);
       setAttendance([]);
       setAssignments([]);
       setStudySessions([]);
       setStudyGoals([]);
-
       setLoading(false);
-
       return undefined;
     }
 
     const userId = currentUser.uid;
-
     setLoading(true);
     setError("");
-
-    // --------------------------------------------------------
-    // Create queries
-    // --------------------------------------------------------
 
     const subjectsQuery = query(
       collection(db, "subjects"),
       where("userId", "==", userId)
     );
-
     const attendanceQuery = query(
       collection(db, "attendance"),
       where("userId", "==", userId)
     );
-
     const assignmentsQuery = query(
       collection(db, "assignments"),
       where("userId", "==", userId)
     );
-
     const studySessionsQuery = query(
       collection(db, "studySessions"),
       where("userId", "==", userId)
     );
-
     const studyGoalsQuery = query(
       collection(db, "studyGoals"),
       where("userId", "==", userId)
     );
-
-    // --------------------------------------------------------
-    // Loading tracker
-    // --------------------------------------------------------
 
     const loaded = {
       subjects: false,
@@ -132,708 +88,416 @@ export default function Analytics() {
 
     const updateLoadingState = (key) => {
       loaded[key] = true;
-
-      const everythingLoaded =
+      if (
         loaded.subjects &&
         loaded.attendance &&
         loaded.assignments &&
         loaded.studySessions &&
-        loaded.studyGoals;
-
-      if (everythingLoaded) {
+        loaded.studyGoals
+      ) {
         setLoading(false);
       }
     };
 
-    // --------------------------------------------------------
-    // Generic Firestore error handler
-    // --------------------------------------------------------
-
     const handleFirestoreError = (err) => {
-      console.error(
-        "Analytics Firestore error:",
-        err
-      );
-
-      setError(
-        formatFirebaseError(err) ||
-          "Unable to load academic analytics."
-      );
+      console.error("Analytics Firestore error:", err);
+      setError(formatFirebaseError(err) || "Unable to load academic analytics.");
     };
 
-    // ========================================================
-    // SUBJECTS
-    // ========================================================
-
-    const unsubscribeSubjects = onSnapshot(
+    const unsubSub = onSnapshot(
       subjectsQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map(
-          (document) => ({
-            id: document.id,
-            ...document.data(),
-          })
-        );
-
-        setSubjects(data);
-
+      (s) => {
+        setSubjects(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         updateLoadingState("subjects");
       },
       (err) => {
         handleFirestoreError(err);
-
-        setSubjects([]);
-
         updateLoadingState("subjects");
       }
     );
 
-    // ========================================================
-    // ATTENDANCE
-    // ========================================================
-
-    const unsubscribeAttendance = onSnapshot(
+    const unsubAtt = onSnapshot(
       attendanceQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map(
-          (document) => ({
-            id: document.id,
-            ...document.data(),
-          })
-        );
-
-        setAttendance(data);
-
+      (s) => {
+        setAttendance(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         updateLoadingState("attendance");
       },
       (err) => {
         handleFirestoreError(err);
-
-        setAttendance([]);
-
         updateLoadingState("attendance");
       }
     );
 
-    // ========================================================
-    // ASSIGNMENTS
-    // ========================================================
-
-    const unsubscribeAssignments = onSnapshot(
+    const unsubAsg = onSnapshot(
       assignmentsQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map(
-          (document) => ({
-            id: document.id,
-            ...document.data(),
-          })
-        );
-
-        setAssignments(data);
-
+      (s) => {
+        setAssignments(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         updateLoadingState("assignments");
       },
       (err) => {
         handleFirestoreError(err);
-
-        setAssignments([]);
-
         updateLoadingState("assignments");
       }
     );
 
-    // ========================================================
-    // STUDY SESSIONS
-    // ========================================================
-
-    const unsubscribeStudySessions = onSnapshot(
+    const unsubStd = onSnapshot(
       studySessionsQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map(
-          (document) => ({
-            id: document.id,
-            ...document.data(),
-          })
-        );
-
-        setStudySessions(data);
-
+      (s) => {
+        setStudySessions(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         updateLoadingState("studySessions");
       },
       (err) => {
         handleFirestoreError(err);
-
-        setStudySessions([]);
-
         updateLoadingState("studySessions");
       }
     );
 
-    // ========================================================
-    // STUDY GOALS
-    // ========================================================
-
-    const unsubscribeStudyGoals = onSnapshot(
+    const unsubGol = onSnapshot(
       studyGoalsQuery,
-      (snapshot) => {
-        const data = snapshot.docs.map(
-          (document) => ({
-            id: document.id,
-            ...document.data(),
-          })
-        );
-
-        setStudyGoals(data);
-
+      (s) => {
+        setStudyGoals(s.docs.map((d) => ({ id: d.id, ...d.data() })));
         updateLoadingState("studyGoals");
       },
       (err) => {
         handleFirestoreError(err);
-
-        setStudyGoals([]);
-
         updateLoadingState("studyGoals");
       }
     );
-
-    // ========================================================
-    // CLEANUP
-    // ========================================================
 
     return () => {
-      unsubscribeSubjects();
-      unsubscribeAttendance();
-      unsubscribeAssignments();
-      unsubscribeStudySessions();
-      unsubscribeStudyGoals();
+      unsubSub();
+      unsubAtt();
+      unsubAsg();
+      unsubStd();
+      unsubGol();
     };
   }, [currentUser]);
 
-  // ==========================================================
-  // ACADEMIC SUMMARY
-  // ==========================================================
-
+  // Derived Analytics Summary
   const summary = useMemo(() => {
-    try {
-      return calculateAcademicSummary({
-        subjects,
-        attendance,
-        assignments,
-        studySessions,
-        dateFilter,
-      });
-    } catch (err) {
-      console.error(
-        "Academic summary calculation error:",
-        err
-      );
+    return calculateAcademicSummary({
+      subjects,
+      attendance,
+      assignments,
+      studySessions,
+      studyGoals,
+    });
+  }, [subjects, attendance, assignments, studySessions, studyGoals]);
 
-      return {};
-    }
-  }, [
-    subjects,
-    attendance,
-    assignments,
-    studySessions,
-    dateFilter,
-  ]);
-
-  // ==========================================================
-  // ANALYTICS INSIGHTS
-  // ==========================================================
-
+  // Derived Analytics Insights
   const insights = useMemo(() => {
-    try {
-      return generateAnalyticsInsights({
-        subjects,
-        attendance,
-        assignments,
-        studySessions,
-        dateFilter,
-      });
-    } catch (err) {
-      console.error(
-        "Analytics insights calculation error:",
-        err
-      );
+    return generateAnalyticsInsights({
+      subjects,
+      attendance,
+      assignments,
+      studySessions,
+      studyGoals,
+    });
+  }, [subjects, attendance, assignments, studySessions, studyGoals]);
 
-      return [];
+  const analyticsStyles = `
+    .cf-analytics-root {
+      min-height: 100%;
+      padding: 24px clamp(14px, 3vw, 32px) 44px;
+      background: #f8fafc;
+      color: #0f172a;
+      box-sizing: border-box;
+      font-family: inherit;
     }
-  }, [
-    subjects,
-    attendance,
-    assignments,
-    studySessions,
-    dateFilter,
-  ]);
+    .cf-analytics-container {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    .cf-analytics-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      border: 1px solid #dbeafe;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fbff 60%, #eff6ff 100%);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+      flex-wrap: wrap;
+    }
+    .cf-analytics-header-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cf-analytics-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      width: fit-content;
+    }
+    .cf-analytics-header h1 {
+      margin: 2px 0 0;
+      font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #0f172a;
+    }
+    .cf-analytics-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+    .cf-analytics-filter-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #ffffff;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+    .cf-analytics-filter-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .cf-analytics-filter-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    }
+    .cf-analytics-alert {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 0.825rem;
+    }
+    .cf-analytics-alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .cf-analytics-section {
+      margin-bottom: 28px;
+    }
+    .cf-analytics-section-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .cf-analytics-section-head h2 {
+      margin: 0;
+      font-size: 1.12rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    .cf-analytics-charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+      gap: 16px;
+    }
+    .cf-analytics-chart-wrapper {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 3px 12px rgba(15, 23, 42, 0.03);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cf-analytics-chart-wrapper:hover {
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+    }
 
-  // ==========================================================
-  // LOGGED OUT STATE
-  // ==========================================================
+    /* Loading Skeletons */
+    .cf-skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: 16px;
+    }
+    .cf-skeleton-card {
+      height: 240px;
+      border-radius: 18px;
+      background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: cfShimmer 1.3s infinite;
+      border: 1px solid #e2e8f0;
+    }
+    @keyframes cfShimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
 
-  if (!currentUser) {
-    return (
-      <div
-        style={{
-          width: "100%",
-          minHeight: "60vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "2rem",
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            maxWidth: "500px",
-            textAlign: "center",
-            backgroundColor: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: "16px",
-            padding: "3rem 2rem",
-            boxShadow:
-              "0 4px 12px rgba(0,0,0,0.05)",
-          }}
-        >
-          <AlertCircle
-            size={48}
-            color="#2563eb"
-            style={{
-              marginBottom: "1rem",
-            }}
-          />
-
-          <h2
-            style={{
-              margin: "0 0 0.75rem",
-              color: "#0f172a",
-            }}
-          >
-            Please Login
-          </h2>
-
-          <p
-            style={{
-              margin: 0,
-              color: "#64748b",
-            }}
-          >
-            Login to view your academic analytics
-            and performance dashboard.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ==========================================================
-  // MAIN UI
-  // ==========================================================
+    @media (max-width: 640px) {
+      .cf-analytics-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+      }
+      .cf-analytics-filter-group {
+        width: 100%;
+      }
+      .cf-analytics-filter-btn {
+        flex: 1;
+        text-align: center;
+      }
+      .cf-analytics-charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  `;
 
   return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "100%",
-        padding: "2rem 2.5rem",
-        boxSizing: "border-box",
-        minHeight: "100%",
-      }}
-    >
-      {/* ====================================================
-          HEADER
-      ==================================================== */}
-
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-          paddingBottom: "1.5rem",
-          borderBottom:
-            "1px solid #e2e8f0",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginBottom: "6px",
-            }}
-          >
-            <div
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
-                backgroundColor: "#eff6ff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#2563eb",
-              }}
-            >
-              <BarChart2 size={22} />
-            </div>
-
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "1.75rem",
-                fontWeight: 700,
-                color: "#0f172a",
-                letterSpacing:
-                  "-0.02em",
-              }}
-            >
-              Academic Analytics
-            </h1>
+    <main className="cf-analytics-root">
+      <style>{analyticsStyles}</style>
+      <div className="cf-analytics-container">
+        {/* Header Banner */}
+        <header className="cf-analytics-header">
+          <div className="cf-analytics-header-info">
+            <span className="cf-analytics-kicker">
+              <BarChart2 size={12} /> Real-Time Intelligence
+            </span>
+            <h1>Performance Analytics</h1>
+            <p>
+              Comprehensive performance visualization, attendance health, study trends, and risk intelligence.
+            </p>
           </div>
 
-          <p
-            style={{
-              margin: 0,
-              color: "#64748b",
-              fontSize: "0.95rem",
-            }}
-          >
-            Comprehensive performance
-            visualization, attendance health,
-            study trends, and academic risk
-            intelligence.
-          </p>
-        </div>
-
-        {/* ==================================================
-            DATE FILTER
-        ================================================== */}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            backgroundColor: "#f1f5f9",
-            padding: "4px",
-            borderRadius: "10px",
-            border:
-              "1px solid #e2e8f0",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() =>
-              setDateFilter("week")
-            }
-            style={{
-              padding: "7px 14px",
-              borderRadius: "8px",
-              border: "none",
-
-              backgroundColor:
-                dateFilter === "week"
-                  ? "#ffffff"
-                  : "transparent",
-
-              color:
-                dateFilter === "week"
-                  ? "#2563eb"
-                  : "#64748b",
-
-              fontWeight:
-                dateFilter === "week"
-                  ? 700
-                  : 500,
-
-              fontSize: "0.85rem",
-
-              cursor: "pointer",
-
-              boxShadow:
-                dateFilter === "week"
-                  ? "0 1px 3px rgba(0,0,0,0.05)"
-                  : "none",
-            }}
-          >
-            This Week
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setDateFilter("month")
-            }
-            style={{
-              padding: "7px 14px",
-              borderRadius: "8px",
-              border: "none",
-
-              backgroundColor:
-                dateFilter === "month"
-                  ? "#ffffff"
-                  : "transparent",
-
-              color:
-                dateFilter === "month"
-                  ? "#2563eb"
-                  : "#64748b",
-
-              fontWeight:
-                dateFilter === "month"
-                  ? 700
-                  : 500,
-
-              fontSize: "0.85rem",
-
-              cursor: "pointer",
-
-              boxShadow:
-                dateFilter === "month"
-                  ? "0 1px 3px rgba(0,0,0,0.05)"
-                  : "none",
-            }}
-          >
-            This Month
-          </button>
-        </div>
-      </header>
-
-      {/* ====================================================
-          ERROR
-      ==================================================== */}
-
-      {error && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "0.75rem",
-            padding:
-              "0.875rem 1.25rem",
-            backgroundColor: "#fef2f2",
-            color: "#991b1b",
-            borderRadius: "10px",
-            marginBottom: "1.5rem",
-            border:
-              "1px solid #fecaca",
-            fontSize: "0.9rem",
-          }}
-        >
-          <AlertCircle
-            size={20}
-            style={{
-              flexShrink: 0,
-              marginTop: "1px",
-            }}
-          />
-
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* ====================================================
-          LOADING
-      ==================================================== */}
-
-      {loading ? (
-        <AnalyticsLoading />
-      ) : (
-        <>
-          {/* ==================================================
-              SUMMARY
-          ================================================== */}
-
-          <section
-            style={{
-              marginBottom: "2.5rem",
-            }}
-          >
-            <AnalyticsSummary
-              summaryData={summary}
-            />
-          </section>
-
-          {/* ==================================================
-              RISK
-          ================================================== */}
-
-          <section
-            style={{
-              marginBottom: "2.5rem",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "1.25rem",
-              }}
+          {/* Date Filter */}
+          <div className="cf-analytics-filter-group" role="group" aria-label="Time period filter">
+            <button
+              type="button"
+              className={`cf-analytics-filter-btn ${dateFilter === "week" ? "active" : ""}`}
+              onClick={() => setDateFilter("week")}
             >
-              <ShieldAlert
-                size={22}
-                color="#2563eb"
-              />
-
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.25rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                }}
-              >
-                Academic Risk Diagnostics
-              </h2>
-            </div>
-
-            <AcademicRiskOverview
-              subjects={subjects}
-              attendance={attendance}
-              assignments={assignments}
-              studySessions={studySessions}
-              studyGoals={studyGoals}
-              loading={loading}
-            />
-          </section>
-
-          {/* ==================================================
-              INSIGHTS
-          ================================================== */}
-
-          <section
-            style={{
-              marginBottom: "2.5rem",
-            }}
-          >
-            <AnalyticsInsights
-              insights={insights}
-            />
-          </section>
-
-          {/* ==================================================
-              CHARTS
-          ================================================== */}
-
-          <section
-            style={{
-              marginBottom: "2rem",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "1.25rem",
-              }}
+              This Week
+            </button>
+            <button
+              type="button"
+              className={`cf-analytics-filter-btn ${dateFilter === "month" ? "active" : ""}`}
+              onClick={() => setDateFilter("month")}
             >
-              <BarChart2
-                size={20}
-                color="#2563eb"
-              />
+              This Month
+            </button>
+          </div>
+        </header>
 
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.25rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                }}
-              >
-                Detailed Visual Breakdowns
-              </h2>
-            </div>
+        {/* Error Alert */}
+        {error && (
+          <div className="cf-analytics-alert cf-analytics-alert-error" role="alert">
+            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(340px, 1fr))",
-                gap: "1.5rem",
-              }}
-            >
-              {/* ATTENDANCE */}
+        {/* Loading State */}
+        {loading ? (
+          <AnalyticsLoading />
+        ) : (
+          <>
+            {/* 1. Summary KPIs */}
+            <section className="cf-analytics-section" aria-label="Key Performance Indicators">
+              <AnalyticsSummary summaryData={summary} />
+            </section>
 
-              <AttendanceChart
+            {/* 2. Academic Risk Diagnostics */}
+            <section className="cf-analytics-section" aria-label="Academic Risk Diagnostics">
+              <div className="cf-analytics-section-head">
+                <ShieldAlert size={19} color="#2563eb" />
+                <h2>Academic Risk Diagnostics</h2>
+              </div>
+              <AcademicRiskOverview
                 subjects={subjects}
                 attendance={attendance}
-                height={250}
-              />
-
-              {/* WEEKLY STUDY */}
-
-              <WeeklyStudyChart
-                studySessions={
-                  studySessions
-                }
-                height={250}
-              />
-
-              {/* SUBJECT PERFORMANCE */}
-
-              <SubjectPerformanceChart
-                subjects={subjects}
-                height={250}
-              />
-
-              {/* ASSIGNMENTS */}
-
-              <AssignmentStatusChart
                 assignments={assignments}
-                height={250}
+                studySessions={studySessions}
+                studyGoals={studyGoals}
+                loading={loading}
               />
-            </div>
-          </section>
-        </>
-      )}
-    </div>
+            </section>
+
+            {/* 3. AI Insights & Observations */}
+            <section className="cf-analytics-section" aria-label="Smart Insights">
+              <div className="cf-analytics-section-head">
+                <Sparkles size={18} color="#2563eb" />
+                <h2>Smart Academic Insights</h2>
+              </div>
+              <AnalyticsInsights insights={insights} />
+            </section>
+
+            {/* 4. Detailed Visual Charts */}
+            <section className="cf-analytics-section" aria-label="Visual Analytics Charts">
+              <div className="cf-analytics-section-head">
+                <PieChart size={19} color="#2563eb" />
+                <h2>Visual Breakdowns & Distributions</h2>
+              </div>
+
+              <div className="cf-analytics-charts-grid">
+                {/* Attendance Chart */}
+                <div className="cf-analytics-chart-wrapper">
+                  <AttendanceChart
+                    subjects={subjects}
+                    attendance={attendance}
+                    height={260}
+                  />
+                </div>
+
+                {/* Weekly Study Chart */}
+                <div className="cf-analytics-chart-wrapper">
+                  <WeeklyStudyChart
+                    studySessions={studySessions}
+                    height={260}
+                  />
+                </div>
+
+                {/* Subject Performance Chart */}
+                <div className="cf-analytics-chart-wrapper">
+                  <SubjectPerformanceChart
+                    subjects={subjects}
+                    height={260}
+                  />
+                </div>
+
+                {/* Assignment Status Chart */}
+                <div className="cf-analytics-chart-wrapper">
+                  <AssignmentStatusChart
+                    assignments={assignments}
+                    height={260}
+                  />
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </main>
   );
 }
 
-
-// ============================================================
-// LOADING COMPONENT
-// ============================================================
-
 function AnalyticsLoading() {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns:
-          "repeat(auto-fit, minmax(280px, 1fr))",
-        gap: "1.5rem",
-      }}
-    >
-      {[1, 2, 3, 4].map(
-        (item) => (
-          <div
-            key={item}
-            style={{
-              height: "250px",
-              backgroundColor:
-                "#f8fafc",
-              border:
-                "1px solid #e2e8f0",
-              borderRadius: "16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#64748b",
-            }}
-          >
-            Loading analytics...
-          </div>
-        )
-      )}
+    <div className="cf-skeleton-grid" aria-label="Loading analytics dashboard...">
+      {[1, 2, 3, 4].map((item) => (
+        <div key={item} className="cf-skeleton-card" />
+      ))}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // src/components/analytics/AnalyticsSummary.jsx
 import React from "react";
-import { Award, CalendarCheck, Clock, CheckSquare, BookOpen } from "lucide-react";
+import { Award, CalendarCheck, Clock, CheckSquare } from "lucide-react";
 
 export default function AnalyticsSummary({ summaryData }) {
   const {
@@ -16,24 +16,33 @@ export default function AnalyticsSummary({ summaryData }) {
   } = summaryData;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
+        gap: "1rem",
+        marginBottom: "1.75rem",
+      }}
+    >
       {/* SGPA */}
-      <div style={{ backgroundColor: "var(--bg-secondary, #ffffff)", border: "1px solid var(--border-color, #e2e8f0)", borderRadius: "12px", padding: "1.25rem" }}>
+      <div className="card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", color: "#8b5cf6" }}>
-          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>Current SGPA</span>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)" }}>Current SGPA</span>
           <Award size={18} />
         </div>
-        <div style={{ fontSize: "28px", fontWeight: 800, margin: "0.4rem 0 0.2rem 0" }}>{currentSGPA}</div>
+        <div style={{ fontSize: "28px", fontWeight: 800, margin: "0.4rem 0 0.2rem 0", color: "#8b5cf6" }}>
+          {currentSGPA}
+        </div>
         <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{totalCredits} Total Credits</span>
       </div>
 
       {/* Attendance */}
-      <div style={{ backgroundColor: "var(--bg-secondary, #ffffff)", border: "1px solid var(--border-color, #e2e8f0)", borderRadius: "12px", padding: "1.25rem" }}>
+      <div className="card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", color: overallAttendance >= 75 ? "#16a34a" : "#dc2626" }}>
-          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>Overall Attendance</span>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)" }}>Overall Attendance</span>
           <CalendarCheck size={18} />
         </div>
-        <div style={{ fontSize: "28px", fontWeight: 800, margin: "0.4rem 0 0.2rem 0" }}>
+        <div style={{ fontSize: "28px", fontWeight: 800, margin: "0.4rem 0 0.2rem 0", color: overallAttendance >= 75 ? "#16a34a" : "#dc2626" }}>
           {overallAttendance !== null ? `${overallAttendance}%` : "—"}
         </div>
         <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
@@ -42,22 +51,26 @@ export default function AnalyticsSummary({ summaryData }) {
       </div>
 
       {/* Study Time */}
-      <div style={{ backgroundColor: "var(--bg-secondary, #ffffff)", border: "1px solid var(--border-color, #e2e8f0)", borderRadius: "12px", padding: "1.25rem" }}>
+      <div className="card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", color: "#ea580c" }}>
-          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>Study Duration</span>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)" }}>Study Duration</span>
           <Clock size={18} />
         </div>
-        <div style={{ fontSize: "28px", fontWeight: 800, margin: "0.4rem 0 0.2rem 0" }}>{totalStudyHours}h</div>
+        <div style={{ fontSize: "28px", fontWeight: 800, margin: "0.4rem 0 0.2rem 0", color: "#ea580c" }}>
+          {totalStudyHours}h
+        </div>
         <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Total Logged</span>
       </div>
 
       {/* Assignments */}
-      <div style={{ backgroundColor: "var(--bg-secondary, #ffffff)", border: "1px solid var(--border-color, #e2e8f0)", borderRadius: "12px", padding: "1.25rem" }}>
+      <div className="card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", color: "#0891b2" }}>
-          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>Task Completion</span>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)" }}>Task Completion</span>
           <CheckSquare size={18} />
         </div>
-        <div style={{ fontSize: "28px", fontWeight: 800, margin: "0.4rem 0 0.2rem 0" }}>{assignmentCompletionRate}%</div>
+        <div style={{ fontSize: "28px", fontWeight: 800, margin: "0.4rem 0 0.2rem 0", color: "#0891b2" }}>
+          {assignmentCompletionRate}%
+        </div>
         <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{completedAssignments} of {totalAssignments} done</span>
       </div>
     </div>
