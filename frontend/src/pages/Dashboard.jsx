@@ -22,7 +22,6 @@ import {
 import {
   AlertCircle,
   ArrowRight,
-  Award,
   BarChart2,
   Bell,
   CalendarCheck,
@@ -549,18 +548,6 @@ export default function Dashboard() {
 
       {/* Metrics */}
       <section style={styles.metricGrid}>
-        <MetricCard
-          to="/sgpa"
-          icon={<Award size={21} />}
-          label="Current SGPA"
-          value={sgpaData.sgpa}
-          detail={
-            sgpaData.hasGradedSubjects
-              ? `${sgpaData.status} • ${sgpaData.totalGradedCredits} credits`
-              : "Add graded subjects to calculate SGPA"
-          }
-          tone="#7c3aed"
-        />
         <MetricCard
           to="/sgpa"
           icon={<TrendingUp size={21} />}
