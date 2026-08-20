@@ -1,102 +1,159 @@
-// src/App.jsx
-import React, { useState } from "react";
 import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
+  BrowserRouter,
   Navigate,
-  useLocation,
-  Outlet,
+  Route,
+  Routes,
 } from "react-router-dom";
+
 import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
 
-// Authentication Pages
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import AppLayout from "./layouts/AppLayout";
 
-// Application Pages
-import Dashboard from "./pages/Dashboard";
-import Subjects from "./pages/Subjects";
-import Attendance from "./pages/Attendance";
-import Assignments from "./pages/Assignments";
-import Sgpa from "./pages/Sgpa";
-import StudyPlanner from "./pages/StudyPlanner";
-import Profile from "./pages/Profile";
-import Analytics from "./pages/Analytics";
-import AiAssistant from "./pages/AiAssistant";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import Dashboard from "./pages/dashboard/Dashboard";
+import Subjects from "./pages/subjects/Subjects";
+import Attendance from "./pages/attendance/Attendance";
+import Assignments from "./pages/assignments/Assignments";
+import Timetable from "./pages/timetable/Timetable";
+import SGPA from "./pages/sgpa/SGPA";
+import StudyPlanner from "./pages/studyplanner/StudyPlanner";
+import Profile from "./pages/profile/Profile";
+import Settings from "./pages/settings/Settings";
 
-// Layout Components
-import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import GuestRoute from "./routes/GuestRoute";
 
-function AppLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const location = useLocation();
-  const currentPage = location.pathname.replace("/", "") || "dashboard";
+import "./App.css";
 
+function Placeholder({ title }) {
   return (
-    <div className="app-container">
-      <Sidebar
-        currentPage={currentPage}
-        isOpen={isSidebarOpen}
-        setIsOpen={setIsSidebarOpen}
-      />
+    <div className="page-placeholder">
+      <div className="page-placeholder-icon">
+        C
+      </div>
 
-      <main className="main-content">
-        <Header
-          pageTitle={currentPage}
-          onMenuClick={() => setIsSidebarOpen(true)}
-        />
+      <h1>{title}</h1>
 
-        <div className="page-content">
-          <Outlet />
-        </div>
-      </main>
+      <p>
+        This page will be built in a later step.
+      </p>
     </div>
   );
 }
 
-function App() {
+export default function App() {
   return (
-    <Router>
-      <AuthProvider>
+    <AuthProvider>
+
+      <BrowserRouter>
+
         <Routes>
-          {/* Public Authentication Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
-          {/* Protected Application Routes */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/subjects" element={<Subjects />} />
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/assignments" element={<Assignments />} />
+          {/* =====================================
+              GUEST ROUTES
+          ====================================== */}
 
-            {/* Study Planner Primary and Alias Route Mappings */}
-            <Route path="/study-planner" element={<StudyPlanner />} />
-            <Route path="/planner" element={<StudyPlanner />} />
-            <Route path="/studyplanner" element={<StudyPlanner />} />
+          <Route element={<GuestRoute />}>
 
-            <Route path="/sgpa" element={<Sgpa />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/ai-assistant" element={<AiAssistant />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route
+              path="/login"
+              element={<Login />}
+            />
+
+            <Route
+              path="/register"
+              element={<Register />}
+            />
+
           </Route>
 
-          {/* Catch-all Fallback Route */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* =====================================
+              PROTECTED APP
+          ====================================== */}
+
+          <Route element={<ProtectedRoute />}>
+
+            <Route element={<AppLayout />}>
+
+              <Route
+                path="/dashboard"
+                element={<Dashboard />}
+               />
+
+              <Route
+                path="/subjects"
+                element={<Subjects />}
+              />
+
+              <Route
+                path="/attendance"
+                element={<Attendance />}
+              />
+
+              <Route
+                path="/assignments"
+                element={<Assignments />}
+              />
+
+              <Route
+                path="/timetable"
+                element={<Timetable />}
+              />
+
+              <Route
+                path="/sgpa"
+                element={<SGPA />}
+              />
+
+              <Route
+                path="/studyplanner"
+                element={<StudyPlanner />}
+              />
+
+              
+              <Route
+                path="/profile"
+                element={<Profile />}
+              />
+
+              <Route
+                path="/settings"
+                element={<Settings />}
+              />
+
+            </Route>
+
+          </Route>
+
+          {/* =====================================
+              DEFAULT ROUTE
+          ====================================== */}
+
+          <Route
+            path="/"
+            element={
+              <Navigate
+                to="/dashboard"
+                replace
+              />
+            }
+          />
+
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to="/dashboard"
+                replace
+              />
+            }
+          />
+
         </Routes>
-      </AuthProvider>
-    </Router>
+
+      </BrowserRouter>
+
+    </AuthProvider>
   );
 }
-
-export default App;

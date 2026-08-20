@@ -1,0 +1,1081 @@
+/* =========================================================
+   CAMPUSFLOW - ASSIGNMENTS
+========================================================= */
+
+.assignments-page {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px;
+  color: var(--text, #0f172a);
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.assignments-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+
+.assignments-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 9px;
+  color: var(--accent, #2563eb);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.assignments-header h1 {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.7px;
+  color: var(--text, #0f172a);
+}
+
+.assignments-header p {
+  margin: 9px 0 0;
+  color: var(--text-muted, #64748b);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.assignments-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 7px 18px rgba(37, 99, 235, 0.18);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.assignments-add-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+}
+
+.assignments-add-button:active {
+  transform: translateY(0);
+}
+
+.assignments-add-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.assignment-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 11px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.assignment-error span {
+  flex: 1;
+}
+
+.assignment-error button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.assignment-error button:hover {
+  background: rgba(185, 28, 28, 0.08);
+}
+
+/* =========================================================
+   SUMMARY
+========================================================= */
+
+.assignment-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin-bottom: 24px;
+}
+
+.assignment-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 88px;
+  padding: 17px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.035);
+}
+
+.assignment-summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.assignment-summary-icon.blue {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.assignment-summary-icon.orange {
+  color: #ea580c;
+  background: #fff7ed;
+}
+
+.assignment-summary-icon.red {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.assignment-summary-icon.green {
+  color: #16a34a;
+  background: #f0fdf4;
+}
+
+.assignment-summary-card span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted, #64748b);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.assignment-summary-card strong {
+  display: block;
+  color: var(--text, #0f172a);
+  font-size: 23px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.assignment-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 20px;
+}
+
+.assignment-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 220px;
+}
+
+.assignment-search > svg {
+  position: absolute;
+  left: 13px;
+  color: var(--text-muted, #94a3b8);
+  pointer-events: none;
+}
+
+.assignment-search input,
+.assignment-toolbar select {
+  width: 100%;
+  height: 43px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  outline: none;
+  background: var(--surface, #fff);
+  color: var(--text, #0f172a);
+  font-family: inherit;
+  font-size: 13px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.assignment-search input {
+  padding: 0 40px 0 40px;
+}
+
+.assignment-toolbar select {
+  width: 190px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.assignment-search input::placeholder {
+  color: #94a3b8;
+}
+
+.assignment-search input:focus,
+.assignment-toolbar select:focus {
+  border-color: var(--accent, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.assignment-search > button {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.assignment-search > button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* =========================================================
+   DUE SOON NOTICE
+========================================================= */
+
+.assignment-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 13px 15px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #fff7ed;
+}
+
+.assignment-notice-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.assignment-notice strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #9a3412;
+  font-size: 13px;
+}
+
+.assignment-notice span {
+  display: block;
+  color: #c2410c;
+  font-size: 12px;
+}
+
+/* =========================================================
+   LIST SECTION
+========================================================= */
+
+.assignment-list-section {
+  padding: 21px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 15px;
+  background: var(--surface, #fff);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.035);
+}
+
+.assignment-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.assignment-list-header h2 {
+  margin: 0;
+  color: var(--text, #0f172a);
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.assignment-list-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted, #64748b);
+  font-size: 12px;
+}
+
+/* =========================================================
+   ASSIGNMENT ITEMS
+========================================================= */
+
+.assignment-items {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.assignment-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 17px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 13px;
+  background: #fff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.assignment-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.assignment-card.completed {
+  background: #fafafa;
+}
+
+.assignment-card.completed h3 {
+  color: #94a3b8;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.assignment-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  padding: 0;
+  border: 2px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.assignment-check:hover {
+  border-color: var(--accent, #2563eb);
+  transform: scale(1.04);
+}
+
+.assignment-check.checked {
+  border-color: #16a34a;
+  background: #16a34a;
+}
+
+.assignment-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.assignment-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.assignment-subject {
+  overflow: hidden;
+  color: var(--accent, #2563eb);
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignment-priority {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.assignment-priority.high {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.assignment-priority.medium {
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.assignment-priority.low {
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.assignment-card-content h3 {
+  margin: 0;
+  color: var(--text, #0f172a);
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 750;
+}
+
+.assignment-card-content > p {
+  margin: 7px 0 0;
+  color: var(--text-muted, #64748b);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.assignment-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 12px;
+}
+
+.assignment-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.assignment-card-meta span.overdue {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.assignment-card-meta span.completed-date {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.assignment-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  margin-top: 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.assignment-delete:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.assignment-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  padding: 35px 20px;
+  text-align: center;
+}
+
+.assignment-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 14px;
+  border-radius: 15px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.assignment-empty h3 {
+  margin: 0;
+  color: var(--text, #0f172a);
+  font-size: 16px;
+}
+
+.assignment-empty p {
+  max-width: 400px;
+  margin: 7px 0 17px;
+  color: var(--text-muted, #64748b);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.assignment-empty button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 39px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.assignment-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  color: var(--text-muted, #64748b);
+}
+
+.assignment-loading p {
+  margin: 13px 0 0;
+  font-size: 13px;
+}
+
+.assignment-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--accent, #2563eb);
+  border-radius: 50%;
+  animation: assignment-spin 0.8s linear infinite;
+}
+
+@keyframes assignment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.assignment-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(4px);
+  animation: assignment-overlay-in 0.2s ease;
+}
+
+@keyframes assignment-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.assignment-modal {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow:
+    0 25px 70px rgba(15, 23, 42, 0.22),
+    0 8px 25px rgba(15, 23, 42, 0.1);
+  animation: assignment-modal-in 0.22s ease;
+}
+
+@keyframes assignment-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.assignment-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 21px 22px 17px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.assignment-modal-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.assignment-modal-header p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.assignment-modal-header > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.assignment-modal-header > button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.assignment-modal form {
+  padding: 21px 22px 22px;
+}
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.assignment-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 17px;
+}
+
+.assignment-form-group label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.assignment-form-group label span {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.assignment-form-group input,
+.assignment-form-group select,
+.assignment-form-group textarea {
+  width: 100%;
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 13px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.assignment-form-group input,
+.assignment-form-group select {
+  height: 43px;
+  padding: 0 12px;
+}
+
+.assignment-form-group textarea {
+  min-height: 100px;
+  padding: 11px 12px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.assignment-form-group input::placeholder,
+.assignment-form-group textarea::placeholder {
+  color: #94a3b8;
+}
+
+.assignment-form-group input:focus,
+.assignment-form-group select:focus,
+.assignment-form-group textarea:focus {
+  border-color: var(--accent, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.09);
+}
+
+.assignment-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.assignment-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.assignment-cancel-button,
+.assignment-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 41px;
+  padding: 0 16px;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.assignment-cancel-button {
+  border: 1px solid #dbe2ea;
+  background: #fff;
+  color: #475569;
+}
+
+.assignment-cancel-button:hover {
+  background: #f8fafc;
+}
+
+.assignment-save-button {
+  border: 1px solid var(--accent, #2563eb);
+  background: var(--accent, #2563eb);
+  color: #fff;
+}
+
+.assignment-save-button:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.assignment-cancel-button:disabled,
+.assignment-save-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 900px) {
+  .assignments-page {
+    padding: 22px;
+  }
+
+  .assignment-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .assignment-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .assignment-search {
+    flex-basis: 100%;
+  }
+
+  .assignment-toolbar select {
+    flex: 1;
+    width: auto;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 640px) {
+  .assignments-page {
+    padding: 16px;
+  }
+
+  .assignments-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 17px;
+    margin-bottom: 20px;
+  }
+
+  .assignments-header h1 {
+    font-size: 26px;
+  }
+
+  .assignments-header p {
+    font-size: 13px;
+  }
+
+  .assignments-add-button {
+    width: 100%;
+  }
+
+  .assignment-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .assignment-summary-card {
+    min-height: 76px;
+    padding: 12px;
+    gap: 9px;
+  }
+
+  .assignment-summary-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .assignment-summary-card strong {
+    font-size: 19px;
+  }
+
+  .assignment-summary-card span {
+    font-size: 10px;
+  }
+
+  .assignment-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+  }
+
+  .assignment-search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .assignment-toolbar select {
+    width: 100%;
+    flex: none;
+  }
+
+  .assignment-notice {
+    align-items: flex-start;
+  }
+
+  .assignment-list-section {
+    padding: 14px;
+    border-radius: 13px;
+  }
+
+  .assignment-list-header {
+    margin-bottom: 13px;
+  }
+
+  .assignment-list-header h2 {
+    font-size: 16px;
+  }
+
+  .assignment-card {
+    gap: 10px;
+    padding: 13px;
+  }
+
+  .assignment-card-top {
+    align-items: flex-start;
+  }
+
+  .assignment-subject {
+    max-width: 70%;
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  .assignment-card-content h3 {
+    font-size: 14px;
+  }
+
+  .assignment-card-content > p {
+    font-size: 11px;
+  }
+
+  .assignment-card-meta {
+    gap: 9px;
+  }
+
+  .assignment-card-meta span {
+    font-size: 10px;
+  }
+
+  .assignment-delete {
+    width: 31px;
+    height: 31px;
+  }
+
+  .assignment-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .assignment-modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .assignment-modal-header {
+    padding: 18px;
+  }
+
+  .assignment-modal form {
+    padding: 18px;
+  }
+
+  .assignment-form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .assignment-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .assignment-cancel-button,
+  .assignment-save-button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 390px) {
+  .assignments-page {
+    padding: 12px;
+  }
+
+  .assignment-summary {
+    gap: 8px;
+  }
+
+  .assignment-summary-card {
+    padding: 10px;
+  }
+
+  .assignment-summary-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .assignment-summary-card strong {
+    font-size: 17px;
+  }
+
+  .assignment-card {
+    padding: 11px;
+  }
+
+  .assignment-card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+/* =========================================================
+   DARK MODE SUPPORT
+========================================================= */
+
+@media (prefers-color-scheme: dark) {
+  /*
+    These rules only activate if your application uses
+    the system dark mode. If CampusFlow already has its
+    own dark-mode variables, they can override these.
+  */
+
+  .assignment-card,
+  .assignment-list-section,
+  .assignment-summary-card,
+  .assignment-modal {
+    background: var(--surface, #0f172a);
+  }
+}

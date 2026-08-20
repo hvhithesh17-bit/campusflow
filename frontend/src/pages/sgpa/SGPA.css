@@ -1,0 +1,1075 @@
+/* =========================================================
+   SGPA PAGE
+========================================================= */
+
+.sgpa-page {
+  width: 100%;
+  max-width: 1450px;
+  margin: 0 auto;
+  padding: 28px;
+  color: #0f172a;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.sgpa-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 25px;
+  margin-bottom: 25px;
+}
+
+.sgpa-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sgpa-header h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+.sgpa-header p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.sgpa-semester {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.sgpa-semester label {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sgpa-semester select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sgpa-semester select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px
+    rgba(37, 99, 235, 0.1);
+}
+
+/* =========================================================
+   ALERT
+========================================================= */
+
+.sgpa-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 13px 15px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.sgpa-alert button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* =========================================================
+   RESULT CARDS
+========================================================= */
+
+.sgpa-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 18px;
+}
+
+.sgpa-result-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 105px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 15px
+    rgba(15, 23, 42, 0.04);
+}
+
+.sgpa-result-card.primary {
+  border-color: #bfdbfe;
+  background: linear-gradient(
+    135deg,
+    #eff6ff,
+    #fff
+  );
+}
+
+.sgpa-result-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 13px;
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.sgpa-result-icon.green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.sgpa-result-icon.orange {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.sgpa-result-card div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sgpa-result-card span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sgpa-result-card strong {
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.sgpa-result-card small {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+/* =========================================================
+   INSIGHTS
+========================================================= */
+
+.sgpa-insights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.sgpa-insight {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.sgpa-insight > svg {
+  flex: 0 0 auto;
+  color: #2563eb;
+}
+
+.sgpa-insight div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sgpa-insight span {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.sgpa-insight strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   CRITERIA
+========================================================= */
+
+.sgpa-criteria {
+  margin-bottom: 22px;
+  padding: 20px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.sgpa-criteria-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.sgpa-criteria-title > svg {
+  flex: 0 0 auto;
+  color: #2563eb;
+}
+
+.sgpa-criteria-title h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.sgpa-criteria-title p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.sgpa-criteria-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 17px;
+}
+
+.sgpa-criteria-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sgpa-criteria-grid strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
+  background: #dbeafe;
+  color: #2563eb;
+  font-size: 11px;
+}
+
+.sgpa-criteria-grid span {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sgpa-criteria-grid small {
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.sgpa-formula {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 9px;
+  background: #eff6ff;
+}
+
+.sgpa-formula span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.sgpa-formula strong {
+  color: #1d4ed8;
+  font-size: 11px;
+}
+
+/* =========================================================
+   SUBJECT SECTION
+========================================================= */
+
+.sgpa-section {
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 4px 16px
+    rgba(15, 23, 42, 0.03);
+}
+
+.sgpa-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sgpa-section-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.sgpa-section-header p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.sgpa-section-header > span {
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   SUBJECT LIST
+========================================================= */
+
+.sgpa-subject-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sgpa-subject-card {
+  display: grid;
+  grid-template-columns:
+    minmax(200px, 1.1fr)
+    minmax(220px, 1.2fr)
+    minmax(260px, 1.4fr)
+    minmax(120px, 0.6fr);
+
+  align-items: center;
+  gap: 20px;
+
+  padding: 19px 22px;
+
+  border-bottom: 1px solid #f1f5f9;
+
+  transition: background 0.2s ease;
+}
+
+.sgpa-subject-card:hover {
+  background: #f8fafc;
+}
+
+.sgpa-subject-card:last-child {
+  border-bottom: 0;
+}
+
+/* =========================================================
+   SUBJECT INFO
+========================================================= */
+
+.sgpa-subject-info {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.sgpa-subject-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  border-radius: 12px;
+}
+
+.sgpa-subject-info > div:last-child {
+  min-width: 0;
+}
+
+.sgpa-subject-info span {
+  display: block;
+  margin-bottom: 3px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.sgpa-subject-info h3 {
+  overflow: hidden;
+  margin: 0;
+  color: #0f172a;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sgpa-subject-info small {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+/* =========================================================
+   IA GRID
+========================================================= */
+
+.sgpa-ia-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.sgpa-ia-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sgpa-ia-grid label {
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+.sgpa-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sgpa-input input {
+  width: 100%;
+  height: 39px;
+  padding: 0 31px 0 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  background: #fff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sgpa-input input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px
+    rgba(37, 99, 235, 0.08);
+}
+
+.sgpa-input input::placeholder {
+  color: #cbd5e1;
+}
+
+.sgpa-input span {
+  position: absolute;
+  right: 8px;
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.sgpa-input input::-webkit-inner-spin-button,
+.sgpa-input input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.sgpa-input input[type="number"] {
+  appearance: textfield;
+}
+
+/* =========================================================
+   ANALYSIS
+========================================================= */
+
+.sgpa-analysis {
+  min-width: 0;
+}
+
+.sgpa-analysis-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+
+.sgpa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.sgpa-badge.excellent {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.sgpa-badge.strong {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.sgpa-badge.improving {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.sgpa-badge.attention {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.sgpa-badge.stable {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.sgpa-count {
+  color: #94a3b8;
+  font-size: 8px;
+}
+
+.sgpa-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.sgpa-analysis-grid > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 4px;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.sgpa-analysis-grid span {
+  color: #94a3b8;
+  font-size: 8px;
+}
+
+.sgpa-analysis-grid strong {
+  display: flex;
+  align-items: center;
+  color: #334155;
+  font-size: 11px;
+}
+
+.trend-up {
+  color: #16a34a !important;
+}
+
+.trend-down {
+  color: #dc2626 !important;
+}
+
+/* =========================================================
+   FINAL GRADE
+========================================================= */
+
+.sgpa-final {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 75px;
+  padding: 8px;
+  border-radius: 10px;
+  background: #f8fafc;
+  text-align: center;
+}
+
+.sgpa-final span {
+  color: #64748b;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.sgpa-final strong {
+  margin: 4px 0;
+  font-size: 22px;
+}
+
+.sgpa-final small {
+  color: #94a3b8;
+  font-size: 8px;
+}
+
+/* =========================================================
+   GRADES
+========================================================= */
+
+.grade-O {
+  color: #7c3aed;
+}
+
+.grade-Aplus {
+  color: #2563eb;
+}
+
+.grade-A {
+  color: #0891b2;
+}
+
+.grade-Bplus {
+  color: #16a34a;
+}
+
+.grade-B {
+  color: #65a30d;
+}
+
+.grade-C {
+  color: #ca8a04;
+}
+
+.grade-P {
+  color: #ea580c;
+}
+
+.grade-F {
+  color: #dc2626;
+}
+
+/* =========================================================
+   TARGETS
+========================================================= */
+
+.sgpa-targets {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.sgpa-target-header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.sgpa-target-header > svg {
+  color: #2563eb;
+}
+
+.sgpa-target-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.sgpa-target-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.sgpa-target-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.sgpa-target {
+  padding: 13px;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+
+.sgpa-target.achieved {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.sgpa-target > div {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.sgpa-target strong {
+  font-size: 22px;
+}
+
+.sgpa-target span {
+  color: #64748b;
+  font-size: 9px;
+}
+
+.sgpa-target p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.sgpa-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.sgpa-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 17px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* RESET */
+
+.sgpa-reset-button {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+}
+
+.sgpa-reset-button:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+/* SAVE */
+
+.sgpa-save-button {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.sgpa-save-button:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  box-shadow: 0 7px 18px
+    rgba(37, 99, 235, 0.2);
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   SAVED MESSAGE
+========================================================= */
+
+.sgpa-saved-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid #bbf7d0;
+  border-radius: 9px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 10px;
+}
+
+/* =========================================================
+   DISCLAIMER
+========================================================= */
+
+.sgpa-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 15px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.sgpa-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 30px;
+  text-align: center;
+  color: #64748b;
+}
+
+.sgpa-empty svg {
+  margin-bottom: 10px;
+  color: #2563eb;
+}
+
+.sgpa-empty h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.sgpa-empty p {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.sgpa-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 400px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.sgpa-spin {
+  animation: sgpa-spin 0.8s linear infinite;
+}
+
+@keyframes sgpa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1150px) {
+  .sgpa-subject-card {
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+
+  .sgpa-subject-info {
+    grid-column: 1 / -1;
+  }
+
+  .sgpa-final {
+    max-width: 180px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+  .sgpa-page {
+    padding: 18px 13px 30px;
+  }
+
+  .sgpa-header {
+    flex-direction: column;
+  }
+
+  .sgpa-header h1 {
+    font-size: 28px;
+  }
+
+  .sgpa-semester {
+    width: 100%;
+  }
+
+  .sgpa-results {
+    grid-template-columns: 1fr;
+  }
+
+  .sgpa-insights {
+    grid-template-columns: 1fr;
+  }
+
+  .sgpa-criteria-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sgpa-formula {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sgpa-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sgpa-subject-card {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding: 18px 14px;
+  }
+
+  .sgpa-ia-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .sgpa-analysis {
+    width: 100%;
+  }
+
+  .sgpa-final {
+    width: 100%;
+    max-width: none;
+  }
+
+  .sgpa-target-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sgpa-actions {
+    width: 100%;
+  }
+
+  .sgpa-actions button {
+    flex: 1;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 430px) {
+  .sgpa-page {
+    padding: 15px 10px 25px;
+  }
+
+  .sgpa-header h1 {
+    font-size: 25px;
+  }
+
+  .sgpa-header p {
+    font-size: 12px;
+  }
+
+  .sgpa-result-card {
+    min-height: 85px;
+    padding: 14px;
+  }
+
+  .sgpa-result-card strong {
+    font-size: 24px;
+  }
+
+  .sgpa-criteria {
+    padding: 15px;
+  }
+
+  .sgpa-criteria-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sgpa-ia-grid {
+    gap: 6px;
+  }
+
+  .sgpa-input input {
+    height: 42px;
+    padding-left: 8px;
+  }
+
+  .sgpa-analysis-grid {
+    gap: 4px;
+  }
+
+  .sgpa-final strong {
+    font-size: 20px;
+  }
+
+  .sgpa-target-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sgpa-actions {
+    flex-direction: column;
+  }
+
+  .sgpa-actions button {
+    width: 100%;
+    flex: none;
+  }
+}

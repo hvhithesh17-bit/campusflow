@@ -22,10 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Environment Variables & Secrets
-.env
-.env.local
-.env.*.local
-node_modules/
-dist/
