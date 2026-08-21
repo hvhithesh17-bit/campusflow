@@ -211,6 +211,11 @@ p { color: var(--text-secondary); line-height: 1.55; font-size: 0.9rem; }
   border-color: #cbd5e1;
 }
 
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.75rem;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
