@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Calculator,
   User,
+  Settings as SettingsIcon,
   LogOut,
   X,
   BarChart2,
@@ -80,6 +81,13 @@ const NAV_ACCOUNT_ITEMS = [
     label: "Profile",
     shortLabel: "Profile",
     icon: User,
+  },
+  {
+    id: "settings",
+    path: "/settings",
+    label: "Settings",
+    shortLabel: "Settings",
+    icon: SettingsIcon,
   },
 ];
 

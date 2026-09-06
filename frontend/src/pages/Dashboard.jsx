@@ -713,8 +713,8 @@ export default function Dashboard() {
           value={
             iaPrediction.averageIA !== null
               ? `${iaPrediction.averageIA.toFixed(
-                  1
-                )}/50`
+                1
+              )}/50`
               : "—"
           }
           detail={
@@ -840,11 +840,10 @@ export default function Dashboard() {
                   return (
                     <div
                       key={session.id}
-                      className={`cf-session-item ${
-                        done
+                      className={`cf-session-item ${done
                           ? "is-completed"
                           : ""
-                      }`}
+                        }`}
                     >
                       <div className="cf-session-check">
                         {done ? (
@@ -888,8 +887,8 @@ export default function Dashboard() {
                         {done
                           ? "Done"
                           : updating
-                          ? "..."
-                          : "Complete"}
+                            ? "..."
+                            : "Complete"}
                       </button>
                     </div>
                   );
@@ -1099,8 +1098,8 @@ export default function Dashboard() {
                 value={
                   iaPrediction.averageIA !== null
                     ? `${iaPrediction.averageIA.toFixed(
-                        1
-                      )}/50`
+                      1
+                    )}/50`
                     : "—"
                 }
                 hint={`${iaPrediction.enteredSubjects}/${iaPrediction.totalSubjects} subjects`}
@@ -1185,21 +1184,21 @@ export default function Dashboard() {
 
                     {item.recommendedStudyHours >
                       0 && (
-                      <div className="cf-recommendation-footer">
-                        <Clock size={14} />
+                        <div className="cf-recommendation-footer">
+                          <Clock size={14} />
 
-                        <span>
-                          Study target:
-                        </span>
+                          <span>
+                            Study target:
+                          </span>
 
-                        <strong>
-                          {
-                            item.recommendedStudyHours
-                          }{" "}
-                          hrs/week
-                        </strong>
-                      </div>
-                    )}
+                          <strong>
+                            {
+                              item.recommendedStudyHours
+                            }{" "}
+                            hrs/week
+                          </strong>
+                        </div>
+                      )}
 
                   </div>
                 ))}
@@ -1268,8 +1267,8 @@ export default function Dashboard() {
                           index
                         ]?.fill ||
                         PIE_FALLBACK_COLORS[
-                          index %
-                            PIE_FALLBACK_COLORS.length
+                        index %
+                        PIE_FALLBACK_COLORS.length
                         ];
 
                       return (
@@ -1335,8 +1334,8 @@ export default function Dashboard() {
                           index
                         ]?.fill ||
                         PIE_FALLBACK_COLORS[
-                          index %
-                            PIE_FALLBACK_COLORS.length
+                        index %
+                        PIE_FALLBACK_COLORS.length
                         ];
 
                       return (
@@ -1737,15 +1736,13 @@ function InsightBox({
 }) {
   return (
     <div
-      className={`cf-insight-box ${
-        highlight
+      className={`cf-insight-box ${highlight
           ? "is-highlight"
           : ""
-      } ${
-        danger
+        } ${danger
           ? "is-danger"
           : ""
-      }`}
+        }`}
     >
       <span>{label}</span>
 
@@ -1947,8 +1944,8 @@ function IconComponent({
 }) {
   return icon
     ? React.cloneElement(icon, {
-        size,
-        color,
-      })
+      size,
+      color,
+    })
     : null;
 }

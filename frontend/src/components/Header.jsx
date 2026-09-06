@@ -16,6 +16,7 @@ import {
   CalendarCheck,
   CheckSquare,
   Sparkles,
+  Settings as SettingsIcon,
 } from "lucide-react";
 
 export default function Header({ pageTitle, onMenuClick }) {
@@ -234,6 +235,16 @@ export default function Header({ pageTitle, onMenuClick }) {
             {userInitials}
           </div>
           <span className="cf-header-username">{userName}</span>
+        </Link>
+
+        {/* Settings Button */}
+        <Link
+          to="/settings"
+          className="cf-header-icon-btn"
+          title="Settings"
+          aria-label="Settings"
+        >
+          <SettingsIcon size={18} />
         </Link>
 
         {/* Logout Button */}

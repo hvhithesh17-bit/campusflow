@@ -24,10 +24,12 @@ import Sgpa from "./pages/Sgpa";
 import StudyPlanner from "./pages/StudyPlanner";
 import Profile from "./pages/Profile";
 import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
 
 // Layout Components
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
+import NotificationToast from "./components/NotificationToast";
 
 function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -36,6 +38,8 @@ function AppLayout() {
 
   return (
     <div className="app-container">
+      <NotificationToast />
+
       <Sidebar
         currentPage={currentPage}
         isOpen={isSidebarOpen}
@@ -87,6 +91,7 @@ function App() {
             <Route path="/sgpa" element={<Sgpa />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
 
           {/* Catch-all Fallback Route */}
