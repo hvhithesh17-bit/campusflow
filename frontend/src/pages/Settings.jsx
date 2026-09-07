@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext"; // <-- imported here
 import {
   requestNotificationPermission,
   triggerLocalNotification,
@@ -20,6 +21,7 @@ import "./Settings.css";
 
 export default function Settings() {
   const { currentUser } = useAuth();
+  const { theme, setTheme } = useTheme(); // <-- using global context
 
   const [notifications, setNotifications] = useState({
     assignmentReminders: true,
@@ -29,9 +31,7 @@ export default function Settings() {
   });
 
   const [permissionStatus, setPermissionStatus] = useState(
-    typeof Notification !== "undefined"
-      ? Notification.permission
-      : "default"
+    typeof Notification !== "undefined" ? Notification.permission : "default"
   );
 
   const [fcmToken, setFcmToken] = useState(
@@ -41,7 +41,6 @@ export default function Settings() {
   const [message, setMessage] = useState("");
   const [loadingAction, setLoadingAction] = useState(false);
 
-  // Auto-sync token if permission is already granted
   useEffect(() => {
     if (
       currentUser &&
@@ -56,20 +55,20 @@ export default function Settings() {
     }
   }, [currentUser]);
 
+  const showFeedback = (msg, duration = 4000) => {
+    setMessage(msg);
+    setTimeout(() => setMessage(""), duration);
+  };
+
   const handleNotificationToggle = async (key) => {
     const newValue = !notifications[key];
-
-    setNotifications((prev) => ({
-      ...prev,
-      [key]: newValue,
-    }));
+    setNotifications((prev) => ({ ...prev, [key]: newValue }));
 
     if (newValue && permissionStatus !== "granted") {
       if (!currentUser) {
-        setMessage("Please log in first.");
+        showFeedback("Please log in first.");
         return;
       }
-
       setLoadingAction(true);
       const result = await requestNotificationPermission(currentUser);
       setLoadingAction(false);
@@ -77,26 +76,20 @@ export default function Settings() {
       if (result.success) {
         setPermissionStatus("granted");
         if (result.token) setFcmToken(result.token);
-        setMessage("Push notifications enabled successfully!");
+        showFeedback("Push notifications enabled successfully!");
       } else {
         setPermissionStatus(result.permission || "denied");
-        setNotifications((prev) => ({
-          ...prev,
-          [key]: false,
-        }));
-        setMessage(result.message || "Could not enable push notifications.");
+        setNotifications((prev) => ({ ...prev, [key]: false }));
+        showFeedback(result.message || "Could not enable push notifications.");
       }
-
-      setTimeout(() => setMessage(""), 4000);
     }
   };
 
   const handleEnablePush = async () => {
     if (!currentUser) {
-      setMessage("Please log in first.");
+      showFeedback("Please log in first.");
       return;
     }
-
     setLoadingAction(true);
     const result = await requestNotificationPermission(currentUser);
     setLoadingAction(false);
@@ -104,46 +97,34 @@ export default function Settings() {
     if (result.success) {
       setPermissionStatus("granted");
       if (result.token) setFcmToken(result.token);
-      setMessage("Push notifications enabled and FCM token registered!");
+      showFeedback("Push notifications enabled and FCM token registered!");
     } else {
       setPermissionStatus(result.permission || "denied");
-      setMessage(result.message || "Could not enable push notifications.");
+      showFeedback(result.message || "Could not enable push notifications.");
     }
-
-    setTimeout(() => setMessage(""), 4000);
   };
 
   const handleSendTestNotification = async () => {
     if (permissionStatus !== "granted") {
-      setMessage("Please enable notifications first.");
-      setTimeout(() => setMessage(""), 4000);
+      showFeedback("Please enable notifications first.");
       return;
     }
-
-    const success = await triggerLocalNotification(
-      "🚀 CampusFlow FCM Test",
-      {
-        body: "Firebase Cloud Messaging is active and operational for your account!",
-        tag: "cf-test-notification",
-      }
+    const success = await triggerLocalNotification("🚀 CampusFlow FCM Test", {
+      body: "Firebase Cloud Messaging is active and operational for your account!",
+      tag: "cf-test-notification",
+    });
+    showFeedback(
+      success
+        ? "Test notification dispatched to your browser!"
+        : "Could not display notification. Check browser settings."
     );
-
-    if (success) {
-      setMessage("Test notification dispatched to your browser!");
-    } else {
-      setMessage("Could not display notification. Check browser settings.");
-    }
-
-    setTimeout(() => setMessage(""), 4000);
   };
 
   const handleCopyToken = () => {
     if (!fcmToken) return;
     navigator.clipboard.writeText(fcmToken);
     setCopied(true);
-    setMessage("FCM Registration Token copied to clipboard!");
-    setTimeout(() => setCopied(false), 2500);
-    setTimeout(() => setMessage(""), 4000);
+    showFeedback("FCM Registration Token copied to clipboard!", 2500);
   };
 
   return (
@@ -163,10 +144,12 @@ export default function Settings() {
           <div className="settings-icon">
             <Bell size={22} />
           </div>
-
           <div>
             <h2>Firebase Cloud Messaging (FCM)</h2>
-            <p>Receive real-time push alerts for assignments, attendance, and study plans.</p>
+            <p>
+              Receive real-time push alerts for assignments, attendance, and
+              study plans.
+            </p>
           </div>
         </div>
 
@@ -199,7 +182,9 @@ export default function Settings() {
                 disabled={loadingAction}
               >
                 <Smartphone size={16} />
-                <span>{loadingAction ? "Connecting..." : "Enable Push Notifications"}</span>
+                <span>
+                  {loadingAction ? "Connecting..." : "Enable Push Notifications"}
+                </span>
               </button>
             ) : (
               <button
@@ -215,7 +200,6 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Token Info Box when active */}
         {fcmToken && (
           <div className="fcm-token-box">
             <div className="fcm-token-label">
@@ -223,14 +207,20 @@ export default function Settings() {
               <span>Device Registration Token:</span>
             </div>
             <div className="fcm-token-content">
-              <code>{fcmToken.substring(0, 32)}...{fcmToken.slice(-12)}</code>
+              <code>
+                {fcmToken.substring(0, 32)}...{fcmToken.slice(-12)}
+              </code>
               <button
                 type="button"
                 className="token-copy-btn"
                 onClick={handleCopyToken}
                 title="Copy FCM Registration Token"
               >
-                {copied ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
+                {copied ? (
+                  <Check size={14} color="#16a34a" />
+                ) : (
+                  <Copy size={14} />
+                )}
                 <span>{copied ? "Copied" : "Copy Token"}</span>
               </button>
             </div>
@@ -244,21 +234,18 @@ export default function Settings() {
             checked={notifications.assignmentReminders}
             onChange={() => handleNotificationToggle("assignmentReminders")}
           />
-
           <NotificationRow
             title="Attendance Alerts"
             description="Get immediate warnings if attendance drops near the 75% threshold."
             checked={notifications.attendanceAlerts}
             onChange={() => handleNotificationToggle("attendanceAlerts")}
           />
-
           <NotificationRow
             title="Study Reminders"
             description="Receive scheduled study session reminders and daily targets."
             checked={notifications.studyReminders}
             onChange={() => handleNotificationToggle("studyReminders")}
           />
-
           <NotificationRow
             title="Exam & IA Reminders"
             description="Get countdowns and notifications for upcoming internal assessments."
@@ -274,7 +261,6 @@ export default function Settings() {
           <div className="settings-icon">
             <Moon size={22} />
           </div>
-
           <div>
             <h2>Appearance</h2>
             <p>Customize how CampusFlow looks on your device.</p>
@@ -282,12 +268,20 @@ export default function Settings() {
         </div>
 
         <div className="appearance-options">
-          <button type="button" className="appearance-option active">
+          <button
+            type="button"
+            className={`appearance-option ${theme === "light" ? "active" : ""}`}
+            onClick={() => setTheme("light")}
+          >
             <Sun size={20} />
             <span>Light</span>
           </button>
 
-          <button type="button" className="appearance-option">
+          <button
+            type="button"
+            className={`appearance-option ${theme === "dark" ? "active" : ""}`}
+            onClick={() => setTheme("dark")}
+          >
             <Moon size={20} />
             <span>Dark</span>
           </button>
@@ -300,7 +294,6 @@ export default function Settings() {
           <div className="settings-icon">
             <Shield size={22} />
           </div>
-
           <div>
             <h2>Account Security</h2>
             <p>Manage your authenticated CampusFlow account.</p>
@@ -312,7 +305,6 @@ export default function Settings() {
             <span>Email</span>
             <strong>{currentUser?.email || "Not available"}</strong>
           </div>
-
           <div>
             <span>Account UID</span>
             <strong>

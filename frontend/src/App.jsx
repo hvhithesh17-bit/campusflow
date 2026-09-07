@@ -8,7 +8,6 @@ import {
   useLocation,
   Outlet,
 } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Authentication Pages
@@ -63,41 +62,39 @@ function AppLayout() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Public Authentication Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+      <Routes>
+        {/* Public Authentication Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-          {/* Protected Application Routes */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/subjects" element={<Subjects />} />
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/assignments" element={<Assignments />} />
+        {/* Protected Application Routes */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/subjects" element={<Subjects />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/assignments" element={<Assignments />} />
 
-            {/* Study Planner Primary and Alias Route Mappings */}
-            <Route path="/study-planner" element={<StudyPlanner />} />
-            <Route path="/planner" element={<StudyPlanner />} />
-            <Route path="/studyplanner" element={<StudyPlanner />} />
+          {/* Study Planner Primary and Alias Route Mappings */}
+          <Route path="/study-planner" element={<StudyPlanner />} />
+          <Route path="/planner" element={<StudyPlanner />} />
+          <Route path="/studyplanner" element={<StudyPlanner />} />
 
-            <Route path="/sgpa" element={<Sgpa />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
+          <Route path="/sgpa" element={<Sgpa />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
 
-          {/* Catch-all Fallback Route */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </AuthProvider>
+        {/* Catch-all Fallback Route */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </Router>
   );
 }
