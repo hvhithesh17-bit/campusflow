@@ -38,21 +38,21 @@ import {
 
 const styles = `
   .subjects-page {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --primary-soft: #eff6ff;
-    --text: #0f172a;
-    --muted: #64748b;
-    --border: #e2e8f0;
-    --surface: #ffffff;
-    --surface-soft: #f8fafc;
-    --success: #16a34a;
-    --danger: #dc2626;
+    --primary: var(--accent-color);
+    --primary-dark: var(--accent-hover);
+    --primary-soft: var(--accent-soft);
+    --text: var(--text-primary);
+    --muted: var(--text-secondary);
+    --border: var(--border-color);
+    --surface: var(--bg-secondary);
+    --surface-soft: var(--bg-subtle);
+    --success: var(--success-color);
+    --danger: var(--danger-color);
     min-height: 100%;
     padding: clamp(16px, 3vw, 32px);
     background:
       radial-gradient(circle at 90% 0%, rgba(37,99,235,.08), transparent 28%),
-      #f8fafc;
+      var(--bg-secondary);
     color: var(--text);
   }
 
@@ -70,9 +70,9 @@ const styles = `
     align-items: center;
     padding: clamp(22px, 4vw, 34px);
     margin-bottom: 20px;
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--border-color);
     border-radius: 24px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 55%, #eff6ff 100%);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, #f8fbff 55%, var(--accent-soft) 100%);
     box-shadow: 0 10px 35px rgba(15, 23, 42, .06);
   }
 
@@ -100,8 +100,8 @@ const styles = `
     margin-bottom: 10px;
     padding: 6px 10px;
     border-radius: 999px;
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: var(--border-color);
+    color: var(--accent-hover);
     font-size: 12px;
     font-weight: 800;
     letter-spacing: .04em;
@@ -206,8 +206,8 @@ const styles = `
     line-height: 1.5;
   }
 
-  .notice-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-  .notice-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+  .notice-error { background: var(--danger-soft); color: #991b1b; border: 1px solid var(--border-color); }
+  .notice-success { background: var(--success-soft); color: #166534; border: 1px solid var(--border-color); }
 
   .form-card {
     margin-bottom: 28px;
@@ -262,7 +262,7 @@ const styles = `
   .field-label {
     display: block;
     margin-bottom: 7px;
-    color: #334155;
+    color: var(--text-muted);
     font-size: .8rem;
     font-weight: 750;
   }
@@ -276,10 +276,10 @@ const styles = `
   .credit-select {
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-color);
     outline: none;
-    background: #fff;
-    color: #0f172a;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
   }
 
@@ -321,20 +321,20 @@ const styles = `
   }
 
   .secondary-action {
-    border: 1px solid #cbd5e1;
-    background: white;
-    color: #334155;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-muted);
   }
 
-  .secondary-action:hover { background: #f8fafc; border-color: #94a3b8; }
+  .secondary-action:hover { background: var(--bg-secondary); border-color: #94a3b8; }
 
   .danger-action {
-    border: 1px solid #fecaca;
-    background: #fff5f5;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
     color: var(--danger);
   }
 
-  .danger-action:hover { background: #fee2e2; }
+  .danger-action:hover { background: var(--bg-secondary); }
 
   .section-head {
     display: flex;
@@ -375,7 +375,7 @@ const styles = `
     left: 11px;
     top: 50%;
     transform: translateY(-50%);
-    color: #94a3b8;
+    color: var(--text-muted);
     pointer-events: none;
   }
 
@@ -409,7 +409,7 @@ const styles = `
     padding: 18px;
     border: 1px solid var(--border);
     border-radius: 18px;
-    background: white;
+    background: var(--bg-secondary);
     box-shadow: 0 5px 18px rgba(15,23,42,.035);
     transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
   }
@@ -417,7 +417,7 @@ const styles = `
   .course-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 12px 28px rgba(15,23,42,.08);
-    border-color: #cbd5e1;
+    border-color: var(--border-color);
   }
 
   .course-card.is-editing {
@@ -448,10 +448,10 @@ const styles = `
     align-items: center;
     gap: 5px;
     padding: 5px 8px;
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--border-color);
     border-radius: 999px;
     background: #f8fbff;
-    color: #1d4ed8;
+    color: var(--accent-hover);
     font-size: .7rem;
     font-weight: 800;
     white-space: nowrap;
@@ -492,20 +492,20 @@ const styles = `
   }
 
   .edit-action {
-    border: 1px solid #dbeafe;
-    background: #eff6ff;
-    color: #1d4ed8;
+    border: 1px solid var(--border-color);
+    background: var(--accent-soft);
+    color: var(--accent-hover);
   }
 
-  .edit-action:hover { background: #dbeafe; }
+  .edit-action:hover { background: var(--border-color); }
 
   .delete-action {
-    border: 1px solid #fee2e2;
-    background: #fff7f7;
-    color: #dc2626;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--danger-color);
   }
 
-  .delete-action:hover { background: #fee2e2; }
+  .delete-action:hover { background: var(--bg-secondary); }
 
   .empty-state {
     display: flex;
@@ -515,7 +515,7 @@ const styles = `
     min-height: 250px;
     padding: 30px;
     text-align: center;
-    border: 1px dashed #cbd5e1;
+    border: 1px dashed var(--border-color);
     border-radius: 20px;
     background: rgba(255,255,255,.8);
   }
@@ -527,7 +527,7 @@ const styles = `
     height: 58px;
     margin-bottom: 14px;
     border-radius: 17px;
-    background: #eff6ff;
+    background: var(--accent-soft);
     color: #3b82f6;
   }
 
@@ -553,7 +553,7 @@ const styles = `
   .skeleton {
     height: 170px;
     border-radius: 18px;
-    background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%);
+    background: linear-gradient(90deg, #eef2f7 25%, var(--bg-secondary) 50%, #eef2f7 75%);
     background-size: 200% 100%;
     animation: shimmer 1.3s infinite;
   }
@@ -578,7 +578,7 @@ const styles = `
     width: min(100%, 430px);
     padding: 24px;
     border-radius: 20px;
-    background: white;
+    background: var(--bg-secondary);
     box-shadow: 0 25px 70px rgba(15,23,42,.25);
     animation: modalIn .18s ease-out;
   }
@@ -595,12 +595,12 @@ const styles = `
     height: 46px;
     margin-bottom: 14px;
     border-radius: 14px;
-    background: #fef2f2;
-    color: #dc2626;
+    background: var(--danger-soft);
+    color: var(--danger-color);
   }
 
   .confirm-title { margin: 0 0 7px; font-size: 1.1rem; }
-  .confirm-text { margin: 0; color: #64748b; font-size: .86rem; line-height: 1.55; }
+  .confirm-text { margin: 0; color: var(--text-muted); font-size: .86rem; line-height: 1.55; }
 
   .confirm-actions {
     display: flex;
@@ -869,7 +869,7 @@ export default function Subjects() {
             <div className="stat-card">
               <div
                 className="stat-icon"
-                style={{ background: "#f1f5f9", color: "#334155" }}
+                style={{ background: "var(--bg-subtle)", color: "var(--text-muted)" }}
               >
                 <Layers size={21} />
               </div>
@@ -882,7 +882,7 @@ export default function Subjects() {
             <div className="stat-card">
               <div
                 className="stat-icon"
-                style={{ background: "#eff6ff", color: "#2563eb" }}
+                style={{ background: "var(--accent-soft)", color: "var(--accent-color)" }}
               >
                 <GraduationCap size={21} />
               </div>
@@ -893,7 +893,7 @@ export default function Subjects() {
                   <span
                     style={{
                       marginLeft: 5,
-                      color: "#64748b",
+                      color: "var(--text-muted)",
                       fontSize: ".78rem",
                       fontWeight: 650,
                     }}
@@ -907,7 +907,7 @@ export default function Subjects() {
             <div className="stat-card">
               <div
                 className="stat-icon"
-                style={{ background: "#f0fdf4", color: "#16a34a" }}
+                style={{ background: "var(--success-soft)", color: "var(--success-color)" }}
               >
                 <Award size={21} />
               </div>
@@ -918,7 +918,7 @@ export default function Subjects() {
                   <span
                     style={{
                       marginLeft: 5,
-                      color: "#64748b",
+                      color: "var(--text-muted)",
                       fontSize: ".78rem",
                       fontWeight: 650,
                     }}
@@ -979,9 +979,9 @@ export default function Subjects() {
             <div className="form-heading">
               <h2 className="form-title">
                 {editingId ? (
-                  <Edit3 size={18} color="#2563eb" />
+                  <Edit3 size={18} color="var(--accent-color)" />
                 ) : (
-                  <PlusCircle size={18} color="#2563eb" />
+                  <PlusCircle size={18} color="var(--accent-color)" />
                 )}
                 {editingId ? "Edit Course" : "Add New Course"}
               </h2>
