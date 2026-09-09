@@ -1109,6 +1109,7 @@ export default function StudyPlanner() {
         </div>
       </main>
 
+
       {deleteTarget && (
         <div
           className="planner-modal-backdrop"
