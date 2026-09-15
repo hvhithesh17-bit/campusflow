@@ -1,5 +1,5 @@
 // src/pages/Profile.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
@@ -14,7 +14,6 @@ import {
   AlertCircle,
   IdCard,
   Building2,
-  BookOpen,
   Calendar,
   Sparkles,
 } from "lucide-react";
@@ -33,6 +32,15 @@ export default function Profile() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // 1. Fetch user data from Firestore on load
   useEffect(() => {
     async function fetchUserProfile() {
@@ -42,6 +50,8 @@ export default function Profile() {
         setLoading(true);
         const userDocRef = doc(db, "users", currentUser.uid);
         const docSnap = await getDoc(userDocRef);
+
+        if (!isMounted.current) return;
 
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -54,9 +64,13 @@ export default function Profile() {
           setName(currentUser.displayName || "");
         }
       } catch (err) {
-        setError(formatFirebaseError(err));
+        if (isMounted.current) {
+          setError(formatFirebaseError(err));
+        }
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       }
     }
 
@@ -104,12 +118,20 @@ export default function Profile() {
         { merge: true }
       );
 
-      setMessage("Student profile updated successfully!");
-      setTimeout(() => setMessage(""), 3500);
+      if (isMounted.current) {
+        setMessage("Student profile updated successfully!");
+        setTimeout(() => {
+          if (isMounted.current) setMessage("");
+        }, 3500);
+      }
     } catch (err) {
-      setError(formatFirebaseError(err));
+      if (isMounted.current) {
+        setError(formatFirebaseError(err));
+      }
     } finally {
-      setSaving(false);
+      if (isMounted.current) {
+        setSaving(false);
+      }
     }
   };
 
@@ -117,8 +139,8 @@ export default function Profile() {
     .cf-profile-root {
       min-height: 100%;
       padding: 24px clamp(14px, 3vw, 32px) 44px;
-      background: #f8fafc;
-      color: #0f172a;
+      background: var(--cf-bg-base, #f8fafc);
+      color: var(--cf-text-primary, #0f172a);
       box-sizing: border-box;
       font-family: inherit;
     }
@@ -133,10 +155,10 @@ export default function Profile() {
       gap: 20px;
       padding: 24px 28px;
       margin-bottom: 24px;
-      border: 1px solid #dbeafe;
+      border: 1px solid var(--cf-border-base, #dbeafe);
       border-radius: 20px;
-      background: linear-gradient(135deg, #ffffff 0%, #f8fbff 60%, #eff6ff 100%);
-      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+      background: var(--cf-bg-card, #ffffff);
+      box-shadow: var(--cf-shadow-sm, 0 4px 20px rgba(15, 23, 42, 0.04));
     }
     .cf-profile-kicker {
       display: inline-flex;
@@ -144,8 +166,9 @@ export default function Profile() {
       gap: 6px;
       padding: 4px 10px;
       border-radius: 999px;
-      background: #dbeafe;
-      color: #1d4ed8;
+      background: var(--cf-primary-subtle, #eff6ff);
+      color: var(--cf-primary, #2563eb);
+      border: 1px solid var(--cf-primary-border, rgba(37, 99, 235, 0.2));
       font-size: 0.72rem;
       font-weight: 800;
       text-transform: uppercase;
@@ -153,15 +176,15 @@ export default function Profile() {
       width: fit-content;
     }
     .cf-profile-header h1 {
-      margin: 4px 0 0;
+      margin: 8px 0 4px;
       font-size: clamp(1.4rem, 2.5vw, 1.85rem);
-      font-weight: 800;
+      font-weight: 850;
       letter-spacing: -0.03em;
-      color: #0f172a;
+      color: var(--cf-text-primary, #0f172a);
     }
     .cf-profile-header p {
       margin: 0;
-      color: #64748b;
+      color: var(--cf-text-muted, #64748b);
       font-size: 0.86rem;
       line-height: 1.5;
     }
@@ -173,24 +196,24 @@ export default function Profile() {
       gap: 20px;
       padding: 24px;
       margin-bottom: 24px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--cf-bg-card, #ffffff);
+      border: 1px solid var(--cf-border-base, #e2e8f0);
       border-radius: 20px;
-      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+      box-shadow: var(--cf-shadow-sm, 0 2px 12px rgba(15, 23, 42, 0.03));
       flex-wrap: wrap;
     }
     .cf-profile-avatar {
       width: 68px;
       height: 68px;
       border-radius: 20px;
-      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      background: linear-gradient(135deg, var(--cf-primary, #3b82f6) 0%, #1d4ed8 100%);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.75rem;
       font-weight: 800;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+      box-shadow: 0 4px 14px var(--cf-primary-glow, rgba(37, 99, 235, 0.25));
       flex-shrink: 0;
     }
     .cf-profile-hero-meta {
@@ -207,8 +230,8 @@ export default function Profile() {
     .cf-profile-hero-top h2 {
       margin: 0;
       font-size: 1.3rem;
-      font-weight: 800;
-      color: #0f172a;
+      font-weight: 850;
+      color: var(--cf-text-primary, #0f172a);
       letter-spacing: -0.02em;
     }
     .cf-profile-role-tag {
@@ -217,9 +240,9 @@ export default function Profile() {
       gap: 4px;
       padding: 3px 8px;
       border-radius: 6px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1d4ed8;
+      background: var(--cf-primary-subtle, #eff6ff);
+      border: 1px solid var(--cf-primary-border, #bfdbfe);
+      color: var(--cf-primary, #1d4ed8);
       font-size: 0.7rem;
       font-weight: 800;
       text-transform: uppercase;
@@ -229,15 +252,18 @@ export default function Profile() {
       display: flex;
       align-items: center;
       gap: 14px;
-      color: #64748b;
+      color: var(--cf-text-secondary, #64748b);
       font-size: 0.82rem;
       flex-wrap: wrap;
-      margin-top: 4px;
+      margin-top: 6px;
     }
     .cf-profile-hero-item {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
+    }
+    .cf-profile-hero-item svg {
+      color: var(--cf-text-dim, #94a3b8);
     }
 
     /* Alerts */
@@ -249,16 +275,17 @@ export default function Profile() {
       border-radius: 12px;
       margin-bottom: 20px;
       font-size: 0.825rem;
+      font-weight: 600;
     }
     .cf-profile-alert-success {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      color: #166534;
+      background: var(--cf-success-bg, #f0fdf4);
+      border: 1px solid var(--cf-success-border, #bbf7d0);
+      color: var(--cf-success-text, #166534);
     }
     .cf-profile-alert-error {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #991b1b;
+      background: var(--cf-danger-bg, #fef2f2);
+      border: 1px solid var(--cf-danger-border, #fecaca);
+      color: var(--cf-danger-text, #991b1b);
     }
 
     /* Grid Sections */
@@ -269,20 +296,20 @@ export default function Profile() {
       margin-bottom: 24px;
     }
     .cf-profile-section-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--cf-bg-card, #ffffff);
+      border: 1px solid var(--cf-border-base, #e2e8f0);
       border-radius: 20px;
       padding: 22px;
-      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+      box-shadow: var(--cf-shadow-sm, 0 2px 12px rgba(15, 23, 42, 0.03));
     }
     .cf-profile-section-title {
       display: flex;
       align-items: center;
       gap: 8px;
       margin: 0 0 18px 0;
-      font-size: 1.05rem;
+      font-size: 1.02rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--cf-text-primary, #0f172a);
     }
     .cf-profile-form-stack {
       display: flex;
@@ -294,7 +321,7 @@ export default function Profile() {
       margin-bottom: 6px;
       font-size: 0.78rem;
       font-weight: 700;
-      color: #334155;
+      color: var(--cf-text-secondary, #334155);
     }
     .cf-profile-input-wrap {
       position: relative;
@@ -304,51 +331,47 @@ export default function Profile() {
     .cf-profile-input-icon {
       position: absolute;
       left: 12px;
-      color: #94a3b8;
+      color: var(--cf-text-dim, #94a3b8);
       pointer-events: none;
     }
-    .cf-profile-input {
-      width: 100%;
-      height: 42px;
-      padding: 0 12px 0 38px;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      font-size: 0.88rem;
-      font-family: inherit;
-      color: #0f172a;
-      background: #ffffff;
-      box-sizing: border-box;
-      outline: none;
-      transition: all 0.15s ease;
-    }
-    .cf-profile-input:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-    .cf-profile-input:disabled {
-      background: #f8fafc;
-      border-color: #e2e8f0;
-      color: #64748b;
-      cursor: not-allowed;
-    }
+    .cf-profile-input,
     .cf-profile-select {
       width: 100%;
       height: 42px;
       padding: 0 12px 0 38px;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--cf-border-base, #cbd5e1);
       border-radius: 10px;
       font-size: 0.88rem;
       font-family: inherit;
-      color: #0f172a;
-      background: #ffffff;
+      color: var(--cf-text-primary, #0f172a);
+      background: var(--cf-bg-card, #ffffff);
       box-sizing: border-box;
       outline: none;
-      transition: all 0.15s ease;
-      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
+    .cf-profile-select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 36px;
+    }
+    .cf-profile-select option {
+      background: var(--cf-bg-card, #ffffff);
+      color: var(--cf-text-primary, #0f172a);
+    }
+    .cf-profile-input:focus,
     .cf-profile-select:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      border-color: var(--cf-primary, #2563eb);
+      box-shadow: 0 0 0 3px var(--cf-primary-glow, rgba(37, 99, 235, 0.15));
+    }
+    .cf-profile-input:disabled {
+      background: var(--cf-bg-subtle, #f8fafc);
+      border-color: var(--cf-border-subtle, #e2e8f0);
+      color: var(--cf-text-muted, #64748b);
+      cursor: not-allowed;
     }
     .cf-profile-submit-btn {
       display: inline-flex;
@@ -359,18 +382,18 @@ export default function Profile() {
       padding: 0 20px;
       border-radius: 10px;
       border: none;
-      background: #2563eb;
+      background: var(--cf-primary, #2563eb);
       color: #ffffff;
       font-size: 0.82rem;
       font-weight: 800;
       font-family: inherit;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+      box-shadow: 0 4px 14px var(--cf-primary-glow, rgba(37, 99, 235, 0.2));
       transition: all 0.15s ease;
     }
     .cf-profile-submit-btn:hover:not(:disabled) {
-      background: #1d4ed8;
-      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.28);
+      background: var(--cf-primary-hover, #1d4ed8);
+      transform: translateY(-1px);
     }
     .cf-profile-submit-btn:disabled {
       opacity: 0.65;
@@ -381,10 +404,15 @@ export default function Profile() {
     .cf-profile-skeleton {
       height: 200px;
       border-radius: 20px;
-      background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+      background: linear-gradient(
+        90deg,
+        var(--cf-bg-muted, #f1f5f9) 25%,
+        var(--cf-bg-skeleton, #f8fafc) 50%,
+        var(--cf-bg-muted, #f1f5f9) 75%
+      );
       background-size: 200% 100%;
       animation: cfProfileShimmer 1.3s infinite;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--cf-border-base, #e2e8f0);
     }
     @keyframes cfProfileShimmer {
       0% { background-position: 200% 0; }
@@ -404,7 +432,10 @@ export default function Profile() {
       .cf-profile-hero-details {
         flex-direction: column;
         align-items: flex-start;
-        gap: 6px;
+        gap: 8px;
+      }
+      .cf-profile-submit-btn {
+        width: 100%;
       }
     }
   `;
@@ -441,17 +472,17 @@ export default function Profile() {
             </div>
             <div className="cf-profile-hero-details">
               <span className="cf-profile-hero-item">
-                <Mail size={13} /> {currentUser?.email || "No email"}
+                <Mail size={14} /> {currentUser?.email || "No email"}
               </span>
               <span className="cf-profile-hero-item">
-                <Building2 size={13} /> {department || "Department Not Set"}
+                <Building2 size={14} /> {department || "Department Not Set"}
               </span>
               <span className="cf-profile-hero-item">
-                <GraduationCap size={13} /> Semester {semester}
+                <GraduationCap size={14} /> Semester {semester}
               </span>
               {studentId && (
                 <span className="cf-profile-hero-item">
-                  <IdCard size={13} /> {studentId}
+                  <IdCard size={14} /> {studentId}
                 </span>
               )}
             </div>
@@ -484,7 +515,7 @@ export default function Profile() {
               {/* Account Credentials Card */}
               <section className="cf-profile-section-card">
                 <h3 className="cf-profile-section-title">
-                  <Shield size={18} color="#2563eb" />
+                  <Shield size={18} color="var(--cf-primary, #2563eb)" />
                   Account Credentials
                 </h3>
 
@@ -524,7 +555,7 @@ export default function Profile() {
               {/* Academic Information Card */}
               <section className="cf-profile-section-card">
                 <h3 className="cf-profile-section-title">
-                  <GraduationCap size={18} color="#2563eb" />
+                  <GraduationCap size={18} color="var(--cf-primary, #2563eb)" />
                   Academic Information
                 </h3>
 
